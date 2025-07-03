@@ -5,183 +5,213 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulakra Publishing Calendar</title>
 
-<script type="module">
-  // Import Firebase modules
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, setDoc, doc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, addDoc, deleteDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-  const firebaseConfig = {
-  apiKey: "AIzaSyBI7ak0UMM6oynVLitop9HPzps6WCpsGF0",
-  authDomain: "simulakra-calendar.firebaseapp.com",
-  projectId: "simulakra-calendar",
-  storageBucket: "simulakra-calendar.firebasestorage.app",
-  messagingSenderId: "1032110905740",
-  appId: "1:1032110905740:web:d4b6a66336d07ecfebdea9"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyBI7ak0UMM6oynVLitop9HPzps6WCpsGF0",
+      authDomain: "simulakra-calendar.firebaseapp.com",
+      projectId: "simulakra-calendar",
+      storageBucket: "simulakra-calendar.firebasestorage.app",
+      messagingSenderId: "1032110905740",
+      appId: "1:1032110905740:web:d4b6a66336d07ecfebdea9"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.firebaseDB = db;
-</script>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth();
+    let userId = null;
+    let eventsCol;
+    let allEvents = {};
+    let monthOffset = 0;
+    let activeDay = null;
 
+    const loginModal = document.getElementById("loginModal");
+    const loginForm = document.getElementById("loginForm");
+    const loginError = document.getElementById("loginError");
+    const currentUserInfo = document.getElementById("currentUserInfo");
+    const calendarContainer = document.getElementById("calendarContainer");
+    const modal = document.getElementById("modal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const contentType = document.getElementById("contentType");
+    const contentText = document.getElementById("contentText");
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = loginForm.email.value;
+      const password = loginForm.password.value;
+      loginError.textContent = "";
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } catch (err) {
+          loginError.textContent = "Authentication failed.";
+        }
+      }
+    });
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        userId = user.uid;
+        eventsCol = collection(db, `users/${userId}/calendarEvents`);
+        loginModal.style.display = "none";
+        currentUserInfo.textContent = `Logged in as: ${user.email}`;
+        loadEventsFromFirestore();
+      } else {
+        loginModal.style.display = "flex";
+      }
+    });
+
+    async function loadEventsFromFirestore() {
+      if (!eventsCol) return;
+      const snapshot = await getDocs(eventsCol);
+      allEvents = {};
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (!allEvents[data.date]) allEvents[data.date] = [];
+        allEvents[data.date].push({ ...data, id: docSnap.id });
+      });
+
+      calendarContainer.innerHTML = "";
+      for (let i = 0; i <= monthOffset; i++) renderMonth(i);
+    }
+
+    async function addEventToDay() {
+      if (!eventsCol) return;
+      const type = contentType.value;
+      const text = contentText.value.trim();
+      if (!text || !type || !activeDay) return;
+
+      const dateKey = activeDay.dataset.date;
+      await addDoc(eventsCol, { date: dateKey, type, text });
+      modal.style.display = "none";
+      loadEventsFromFirestore();
+    }
+
+    function renderMonth(offset) {
+      const date = new Date();
+      date.setMonth(date.getMonth() + offset);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDay = new Date(year, month, 1).getDay();
+
+      const monthLabel = document.createElement("h2");
+      monthLabel.className = "month-label";
+      monthLabel.textContent = `${date.toLocaleString('default', { month: 'long' })} ${year}`;
+      calendarContainer.appendChild(monthLabel);
+
+      const grid = document.createElement("div");
+      grid.className = "calendar-grid";
+
+      for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement("div"));
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${month + 1}-${day}`;
+        const mmdd = `${month + 1}-${day}`;
+        const dayEl = document.createElement("div");
+        dayEl.classList.add("day");
+        dayEl.dataset.date = dateKey;
+
+        if (holidays[mmdd]) {
+          const holidayLabel = document.createElement("div");
+          holidayLabel.classList.add("holiday");
+          holidayLabel.textContent = holidays[mmdd];
+          dayEl.appendChild(holidayLabel);
+        }
+
+        const dateLabel = document.createElement("span");
+        dateLabel.textContent = day;
+        dayEl.appendChild(dateLabel);
+
+        if (allEvents[dateKey]) {
+          allEvents[dateKey].forEach(event => {
+            const eventEl = document.createElement("div");
+            eventEl.className = `event ${event.type}`;
+            eventEl.textContent = event.text;
+            eventEl.draggable = true;
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-btn";
+            deleteBtn.textContent = "✖";
+            deleteBtn.onclick = async e => {
+              e.stopPropagation();
+              await deleteDoc(doc(eventsCol, event.id));
+              loadEventsFromFirestore();
+            };
+
+            eventEl.appendChild(deleteBtn);
+
+            eventEl.addEventListener("dragstart", e => {
+              e.dataTransfer.setData("text/plain", JSON.stringify(event));
+            });
+
+            dayEl.addEventListener("drop", async e => {
+              e.preventDefault();
+              const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+              if (dragged.id) {
+                await deleteDoc(doc(eventsCol, dragged.id));
+                await addDoc(eventsCol, {
+                  date: dateKey,
+                  text: dragged.text,
+                  type: dragged.type
+                });
+                loadEventsFromFirestore();
+              }
+            });
+
+            dayEl.addEventListener("dragover", e => e.preventDefault());
+            dayEl.appendChild(eventEl);
+          });
+        }
+
+        dayEl.addEventListener("click", () => {
+          activeDay = dayEl;
+          modal.style.display = "flex";
+          contentText.value = "";
+          contentType.value = "youtube";
+        });
+
+        grid.appendChild(dayEl);
+      }
+
+      calendarContainer.appendChild(grid);
+    }
+
+    closeModalBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    window.addEventListener("click", e => {
+      if (e.target === modal) modal.style.display = "none";
+    });
+
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+        renderMonth(monthOffset);
+        monthOffset++;
+      }
+    });
+
+    const holidays = {
+      "1-1": "New Year's Day", "1-15": "Martin Luther King Jr. Day", "2-19": "Presidents' Day",
+      "5-27": "Memorial Day", "6-19": "Juneteenth", "7-4": "Independence Day",
+      "9-2": "Labor Day", "10-14": "Columbus Day", "11-11": "Veterans Day",
+      "11-28": "Thanksgiving", "12-25": "Christmas"
+    };
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #1e1e24;
-      --fg: #f0f0f0;
-      --gray: #2a2a2a;
-      --gray-light: #3b3b3b;
-      --accent: #00bfa6;
-      --youtube: #e53935;
-      --shorts: #fb8c00;
-      --tiktok: #00cec9;
-      --instagram: #d81b60;
-      --highlight: #00bfa6;
-    }
-    html {
-      scroll-behavior: smooth;
-    }
-    body {
-      background: var(--bg);
-      color: var(--fg);
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0.5rem;
-      overflow-y: scroll;
-      height: 100vh;
-    }
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 0 0.5rem;
-    }
-    .logo {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      object-fit: cover;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 0.25rem;
-      font-family: 'Playfair Display', serif;
-      font-size: 2.5rem;
-    }
-    h2.month-label {
-      margin: 2rem 0 1rem;
-      font-size: 1.5rem;
-      text-align: center;
-    }
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 0.5rem;
-      margin-bottom: 3rem;
-    }
-    .day {
-      padding: 0.7rem;
-      background: var(--gray);
-      border-radius: 8px;
-      min-height: 100px;
-      position: relative;
-    }
-    .event {
-      margin-top: 0.5rem;
-      font-size: 0.7rem;
-      padding: 3px 6px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: #fff;
-      cursor: grab;
-    }
-    .event:hover .delete-btn {
-      display: inline;
-    }
-    .delete-btn {
-      display: none;
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-    }
-    .holiday {
-      color: gold;
-      font-size: 0.7rem;
-      font-weight: bold;
-      display: block;
-      margin-bottom: 4px;
-    }
-    .youtube { background-color: var(--youtube); }
-    .shorts { background-color: var(--shorts); }
-    .tiktok { background-color: var(--tiktok); color: #000; }
-    .instagram { background-color: var(--instagram); color: #fff; }
-
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    .modal-content {
-      background: #282c34;
-      padding: 2rem;
-      border-radius: 10px;
-      text-align: center;
-      position: relative;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
-    }
-    .close-modal {
-      position: absolute;
-      top: 10px;
-      right: 14px;
-      font-size: 1.5rem;
-      color: #aaa;
-      cursor: pointer;
-      font-weight: bold;
-      user-select: none;
-    }
-    .modal-content input,
-    .modal-content select,
-    .modal-content button {
-      margin: 0.5rem 0;
-      padding: 0.6rem;
-      width: 100%;
-      border-radius: 6px;
-      border: none;
-      font-size: 1rem;
-      font-family: inherit;
-    }
-    .modal-content input,
-    .modal-content select {
-      background: #1e1e24;
-      color: #fff;
-      border: 1px solid #444;
-    }
-    .modal-content button {
-      background: var(--accent);
-      color: white;
-      font-weight: 600;
-      transition: background 0.3s ease;
-    }
-    .modal-content button:hover {
-      background: #00a58d;
-    }
-  </style>
 </head>
 <body>
   <img src="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" alt="Simulakra Logo" class="logo" />
