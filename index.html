@@ -48,10 +48,16 @@
       font-family: 'Playfair Display', serif;
       font-size: 2.5rem;
     }
+    h2.month-label {
+      margin: 2rem 0 1rem;
+      font-size: 1.5rem;
+      text-align: center;
+    }
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 0.5rem;
+      margin-bottom: 3rem;
     }
     .day {
       padding: 0.7rem;
@@ -69,7 +75,6 @@
       align-items: center;
       justify-content: space-between;
       color: #fff;
-      background: var(--accent);
       cursor: grab;
     }
     .event:hover .delete-btn {
@@ -89,13 +94,17 @@
       display: block;
       margin-bottom: 4px;
     }
+    .youtube { background-color: var(--youtube); }
+    .shorts { background-color: var(--shorts); }
+    .tiktok { background-color: var(--tiktok); color: #000; }
+    .instagram { background-color: var(--instagram); color: #fff; }
   </style>
 </head>
 <body>
   <img src="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" alt="Simulakra Logo" class="logo" />
   <div class="container">
     <h1>Simulakra Publishing Calendar</h1>
-    <div id="calendarContainer" class="calendar-grid"></div>
+    <div id="calendarContainer"></div>
   </div>
 
   <script>
@@ -114,80 +123,111 @@
     };
 
     const calendarContainer = document.getElementById("calendarContainer");
+    let monthOffset = 0;
     const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
 
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDay = new Date(year, month, 1).getDay();
+    function renderMonth(offset) {
+      const today = new Date();
+      const date = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDay = new Date(year, month, 1).getDay();
 
-    for (let i = 0; i < firstDay; i++) {
-      calendarContainer.appendChild(document.createElement("div"));
-    }
+      const monthLabel = document.createElement("h2");
+      monthLabel.className = "month-label";
+      monthLabel.textContent = `${date.toLocaleString('default', { month: 'long' })} ${year}`;
+      calendarContainer.appendChild(monthLabel);
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const cellDate = new Date(year, month, day);
-      const mmdd = `${month + 1}-${day}`;
-      const dateKey = `${year}-${month + 1}-${day}`;
-      const dayEl = document.createElement("div");
-      dayEl.classList.add("day");
-      dayEl.dataset.date = dateKey;
+      const grid = document.createElement("div");
+      grid.className = "calendar-grid";
 
-      if (holidays[mmdd]) {
-        const holidayLabel = document.createElement("div");
-        holidayLabel.classList.add("holiday");
-        holidayLabel.textContent = holidays[mmdd];
-        dayEl.appendChild(holidayLabel);
+      for (let i = 0; i < firstDay; i++) {
+        grid.appendChild(document.createElement("div"));
       }
 
-      const dateLabel = document.createElement("span");
-      dateLabel.textContent = day;
-      dayEl.appendChild(dateLabel);
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cellDate = new Date(year, month, day);
+        const mmdd = `${month + 1}-${day}`;
+        const dateKey = `${year}-${month + 1}-${day}`;
+        const dayEl = document.createElement("div");
+        dayEl.classList.add("day");
+        dayEl.dataset.date = dateKey;
 
-      if (savedData[dateKey]) {
-        savedData[dateKey].forEach((event, idx) => {
-          const eventEl = document.createElement("div");
-          eventEl.className = "event";
-          eventEl.textContent = event.text;
-          eventEl.draggable = true;
+        if (holidays[mmdd]) {
+          const holidayLabel = document.createElement("div");
+          holidayLabel.className = "holiday";
+          holidayLabel.textContent = holidays[mmdd];
+          dayEl.appendChild(holidayLabel);
+        }
 
-          const deleteBtn = document.createElement("button");
-          deleteBtn.className = "delete-btn";
-          deleteBtn.textContent = "✖";
-          deleteBtn.onclick = e => {
-            e.stopPropagation();
-            savedData[dateKey].splice(idx, 1);
-            if (savedData[dateKey].length === 0) delete savedData[dateKey];
-            localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-            dayEl.removeChild(eventEl);
-          };
+        const dateLabel = document.createElement("span");
+        dateLabel.textContent = day;
+        dayEl.appendChild(dateLabel);
 
-          eventEl.appendChild(deleteBtn);
+        if (savedData[dateKey]) {
+          savedData[dateKey].forEach((event, idx) => {
+            const eventEl = document.createElement("div");
+            eventEl.className = `event ${event.type}`;
+            eventEl.textContent = event.text;
+            eventEl.draggable = true;
 
-          eventEl.addEventListener("dragstart", e => {
-            e.dataTransfer.setData("text/plain", JSON.stringify({ date: dateKey, index: idx }));
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-btn";
+            deleteBtn.textContent = "✖";
+            deleteBtn.onclick = e => {
+              e.stopPropagation();
+              savedData[dateKey].splice(idx, 1);
+              if (savedData[dateKey].length === 0) delete savedData[dateKey];
+              localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+              dayEl.removeChild(eventEl);
+            };
+
+            eventEl.appendChild(deleteBtn);
+
+            eventEl.addEventListener("dragstart", e => {
+              e.dataTransfer.setData("text/plain", JSON.stringify({ date: dateKey, index: idx }));
+            });
+
+            dayEl.appendChild(eventEl);
           });
+        }
 
-          dayEl.appendChild(eventEl);
+        dayEl.addEventListener("click", () => {
+          activeDay = dayEl;
+          modal.style.display = "flex";
+          contentText.value = "";
+          contentType.value = "youtube";
         });
+
+        dayEl.addEventListener("dragover", e => e.preventDefault());
+        dayEl.addEventListener("drop", e => {
+          e.preventDefault();
+          const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+          const movedEvent = savedData[data.date][data.index];
+          if (!savedData[dateKey]) savedData[dateKey] = [];
+          savedData[dateKey].push(movedEvent);
+          savedData[data.date].splice(data.index, 1);
+          if (savedData[data.date].length === 0) delete savedData[data.date];
+          localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+          location.reload();
+        });
+
+        grid.appendChild(dayEl);
       }
 
-      dayEl.addEventListener("dragover", e => e.preventDefault());
-      dayEl.addEventListener("drop", e => {
-        e.preventDefault();
-        const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-        const movedEvent = savedData[data.date][data.index];
-        if (!savedData[dateKey]) savedData[dateKey] = [];
-        savedData[dateKey].push(movedEvent);
-        savedData[data.date].splice(data.index, 1);
-        if (savedData[data.date].length === 0) delete savedData[data.date];
-        localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-        location.reload();
-      });
-
-      calendarContainer.appendChild(dayEl);
+      calendarContainer.appendChild(grid);
     }
+
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+        renderMonth(monthOffset);
+        monthOffset++;
+      }
+    });
+
+    renderMonth(monthOffset);
+    monthOffset++;
   </script>
 </body>
 </html>
