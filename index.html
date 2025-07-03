@@ -88,7 +88,7 @@
   </style>
 </head>
 <body>
-  <h1>Simulakra Publishing Calendar</h1>
+  <h1>Content Publishing Calendar</h1>
   <h2>July 2025</h2>
   <div class="weekdays">
     <div>Sun</div>
@@ -102,16 +102,26 @@
   <div class="calendar" id="calendar"></div>
 
   <script>
-    const daysInMonth = 31;
+    const year = 2025;
+    const month = 6; // July (0-indexed)
     const calendar = document.getElementById("calendar");
 
-    for (let i = 0; i < daysInMonth; i++) {
-      const date = new Date(2025, 6, i + 1); // July 2025
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Add empty slots until the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      const emptyCell = document.createElement("div");
+      calendar.appendChild(emptyCell);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(year, month, i);
       const dayOfWeek = date.getDay();
       const dayEl = document.createElement("div");
       dayEl.classList.add("day");
       if (dayOfWeek === 2 || dayOfWeek === 3) dayEl.classList.add("grayed");
-      dayEl.innerHTML = `<span>${i + 1}</span>`;
+      dayEl.innerHTML = `<span>${i}</span>`;
 
       dayEl.addEventListener("click", () => {
         const type = prompt("Add content type (youtube, shorts, tiktok, instagram):");
