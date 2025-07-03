@@ -137,6 +137,23 @@
         dayEl.classList.add("day");
         dayEl.dataset.date = dateKey;
 
+        // Always allow drop
+        dayEl.addEventListener("dragover", e => e.preventDefault());
+
+        dayEl.addEventListener("drop", async e => {
+          e.preventDefault();
+          const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+          if (dragged.id) {
+            await deleteDoc(doc(eventsCol, dragged.id));
+            await addDoc(eventsCol, {
+              date: dateKey,
+              text: dragged.text,
+              type: dragged.type
+            });
+            loadEventsFromFirestore();
+          }
+        });
+
         if (holidays[mmdd]) {
           const holidayLabel = document.createElement("div");
           holidayLabel.classList.add("holiday");
@@ -170,21 +187,6 @@
               e.dataTransfer.setData("text/plain", JSON.stringify(event));
             });
 
-            dayEl.addEventListener("drop", async e => {
-              e.preventDefault();
-              const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
-              if (dragged.id) {
-                await deleteDoc(doc(eventsCol, dragged.id));
-                await addDoc(eventsCol, {
-                  date: dateKey,
-                  text: dragged.text,
-                  type: dragged.type
-                });
-                loadEventsFromFirestore();
-              }
-            });
-
-            dayEl.addEventListener("dragover", e => e.preventDefault());
             dayEl.appendChild(eventEl);
           });
         }
