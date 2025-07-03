@@ -244,21 +244,6 @@
           contentType.value = "youtube";
         });
 
-        dayEl.addEventListener("dragover", e => e.preventDefault());
-        dayEl.addEventListener("drop", e => {
-          e.preventDefault();
-          const eventData = JSON.parse(e.dataTransfer.getData("text/plain"));
-          const oldDate = eventData.date;
-          const newDate = dayEl.dataset.date;
-          const eventObj = savedData[oldDate][eventData.index];
-          if (!savedData[newDate]) savedData[newDate] = [];
-          savedData[newDate].push(eventObj);
-          savedData[oldDate].splice(eventData.index, 1);
-          if (savedData[oldDate].length === 0) delete savedData[oldDate];
-          localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-          renderCalendar();
-        });
-
         calendar.appendChild(dayEl);
       });
     }
@@ -267,12 +252,6 @@
       const label = document.createElement("div");
       label.classList.add("event", event.type);
       label.textContent = event.text;
-      label.draggable = true;
-
-      label.addEventListener("dragstart", e => {
-        e.dataTransfer.setData("text/plain", JSON.stringify({ date: dateKey, index }));
-      });
-
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "delete-btn";
       deleteBtn.textContent = "✖";
@@ -280,7 +259,6 @@
         e.stopPropagation();
         deleteEvent(dateKey, index);
       });
-
       label.appendChild(deleteBtn);
       container.appendChild(label);
     }
