@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Custom Content Calendar</title>
+  <title>Simulakra Publishing Calendar</title>
   <style>
     :root {
-      --bg: #121212;
+      --bg: #300000;
       --fg: #ffffff;
       --gray: #2a2a2a;
       --accent: #ff4081;
@@ -71,8 +71,10 @@
       font-size: 0.75rem;
       padding: 2px 6px;
       border-radius: 4px;
-      display: inline-block;
-      margin-right: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      justify-content: space-between;
     }
 
     .youtube { background-color: var(--youtube); }
@@ -117,6 +119,14 @@
       cursor: pointer;
     }
 
+    .delete-btn {
+      background: transparent;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
     @media (max-width: 600px) {
       .weekdays, .calendar {
         grid-template-columns: repeat(2, 1fr);
@@ -125,7 +135,7 @@
   </style>
 </head>
 <body>
-  <h1>Content Publishing Calendar</h1>
+  <h1>Simulakra Publishing Calendar</h1>
   <h2>July 2025</h2>
   <div class="weekdays">
     <div>Sun</div>
@@ -154,17 +164,18 @@
 
   <script>
     const year = 2025;
-    const month = 6; // July (0-indexed)
+    const month = 6;
     const calendar = document.getElementById("calendar");
     const modal = document.getElementById("modal");
     const contentType = document.getElementById("contentType");
     const contentText = document.getElementById("contentText");
     let activeDay = null;
 
+    const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
+
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // Add empty slots until the first day of the month
     for (let i = 0; i < firstDay; i++) {
       const emptyCell = document.createElement("div");
       calendar.appendChild(emptyCell);
@@ -176,7 +187,14 @@
       const dayEl = document.createElement("div");
       dayEl.classList.add("day");
       if (dayOfWeek === 2 || dayOfWeek === 3) dayEl.classList.add("grayed");
+      dayEl.dataset.date = `${year}-${month + 1}-${i}`;
       dayEl.innerHTML = `<span>${i}</span>`;
+
+      if (savedData[dayEl.dataset.date]) {
+        savedData[dayEl.dataset.date].forEach((event, index) => {
+          addEventElement(dayEl, dayEl.dataset.date, event, index);
+        });
+      }
 
       dayEl.addEventListener("click", () => {
         activeDay = dayEl;
@@ -186,6 +204,13 @@
       });
 
       calendar.appendChild(dayEl);
+    }
+
+    function addEventElement(container, dateKey, event, index) {
+      const label = document.createElement("div");
+      label.classList.add("event", event.type);
+      label.innerHTML = `<span>📌</span> ${event.text} <button class='delete-btn' onclick='deleteEvent("${dateKey}", ${index})'>✖</button>`;
+      container.appendChild(label);
     }
 
     window.addEventListener("click", (e) => {
@@ -199,13 +224,25 @@
       const text = contentText.value.trim();
       if (!text || !type || !activeDay) return;
 
-      const label = document.createElement("div");
-      label.classList.add("event", type);
-      label.textContent = text;
-      activeDay.appendChild(label);
+      const dateKey = activeDay.dataset.date;
+      const newEvent = { type, text };
+      if (!savedData[dateKey]) savedData[dateKey] = [];
+      savedData[dateKey].push(newEvent);
+      localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+
+      addEventElement(activeDay, dateKey, newEvent, savedData[dateKey].length - 1);
 
       modal.style.display = "none";
       activeDay = null;
+    }
+
+    function deleteEvent(dateKey, index) {
+      savedData[dateKey].splice(index, 1);
+      if (savedData[dateKey].length === 0) {
+        delete savedData[dateKey];
+      }
+      localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+      location.reload();
     }
   </script>
 </body>
