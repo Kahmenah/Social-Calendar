@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulakra Publishing Calendar</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #1e1e24;
@@ -16,6 +16,7 @@
       --shorts: #fb8c00;
       --tiktok: #00cec9;
       --instagram: #d81b60;
+      --highlight: #00bfa6;
     }
 
     body {
@@ -38,9 +39,17 @@
       z-index: 1000;
     }
 
-    h1, h2 {
+    h1 {
       text-align: center;
       margin-bottom: 0.25rem;
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-size: 1.75rem;
       font-weight: 600;
     }
 
@@ -76,8 +85,16 @@
 
     .day.grayed {
       background: #333;
-      opacity: 1;
-      color: #aaa;
+      color: #888;
+    }
+
+    .day.past {
+      opacity: 0.5;
+    }
+
+    .day.today {
+      outline: 2px solid var(--highlight);
+      outline-offset: -2px;
     }
 
     .day span {
@@ -227,7 +244,8 @@
     let activeDay = null;
 
     const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
-
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -239,15 +257,18 @@
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(year, month, i);
       const dayOfWeek = date.getDay();
+      const dateKey = `${year}-${month + 1}-${i}`;
       const dayEl = document.createElement("div");
       dayEl.classList.add("day");
       if (dayOfWeek === 2 || dayOfWeek === 3) dayEl.classList.add("grayed");
-      dayEl.dataset.date = `${year}-${month + 1}-${i}`;
+      if (dateKey === todayStr) dayEl.classList.add("today");
+      if (date < today.setHours(0,0,0,0)) dayEl.classList.add("past");
+      dayEl.dataset.date = dateKey;
       dayEl.innerHTML = `<span>${i}</span>`;
 
-      if (savedData[dayEl.dataset.date]) {
-        savedData[dayEl.dataset.date].forEach((event, index) => {
-          addEventElement(dayEl, dayEl.dataset.date, event, index);
+      if (savedData[dateKey]) {
+        savedData[dateKey].forEach((event, index) => {
+          addEventElement(dayEl, dateKey, event, index);
         });
       }
 
@@ -264,7 +285,7 @@
     function addEventElement(container, dateKey, event, index) {
       const label = document.createElement("div");
       label.classList.add("event", event.type);
-      label.innerHTML = `<span>📌</span> ${event.text} <button class='delete-btn' onclick='deleteEvent("${dateKey}", ${index})'>✖</button>`;
+      label.innerHTML = `<span>\ud83d\udccc</span> ${event.text} <button class='delete-btn' onclick='deleteEvent("${dateKey}", ${index})'>\u2716</button>`;
       container.appendChild(label);
     }
 
