@@ -54,21 +54,6 @@
       font-size: 1.75rem;
       font-weight: 600;
     }
-    .calendar-nav {
-      display: flex;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-    .calendar-nav button {
-      background: var(--accent);
-      border: none;
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      color: white;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
     .weekdays, .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
@@ -137,19 +122,13 @@
   <img src="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" alt="Simulakra Logo" class="logo" />
   <div class="container">
     <h1>Simulakra Publishing Calendar</h1>
-    <div class="calendar-nav">
-      <button onclick="changeMonth(-1)">&laquo; Prev</button>
-      <h2 id="monthLabel"></h2>
-      <button onclick="changeMonth(1)">Next &raquo;</button>
-    </div>
     <div id="calendarContainer"></div>
   </div>
   <script>
     const today = new Date();
-    let currentDate = new Date();
+    let monthOffset = 0;
     const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
     const calendarContainer = document.getElementById("calendarContainer");
-    const monthLabel = document.getElementById("monthLabel");
 
     const holidays = {
       "1-1": "New Year's Day",
@@ -165,73 +144,71 @@
       "12-25": "Christmas Day"
     };
 
-    function renderCalendar() {
-      calendarContainer.innerHTML = "";
-      const baseDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    function renderNextMonth() {
+      const date = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+      const section = document.createElement("div");
+      section.className = "calendar-section";
 
-      for (let i = 0; i < 2; i++) {
-        const date = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
-        const section = document.createElement("div");
-        section.className = "calendar-section";
+      const label = document.createElement("h2");
+      label.textContent = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+      section.appendChild(label);
 
-        const label = document.createElement("h2");
-        label.textContent = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
-        section.appendChild(label);
+      const weekdays = document.createElement("div");
+      weekdays.className = "weekdays";
+      ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach(day => {
+        const div = document.createElement("div");
+        div.textContent = day;
+        weekdays.appendChild(div);
+      });
+      section.appendChild(weekdays);
 
-        const weekdays = document.createElement("div");
-        weekdays.className = "weekdays";
-        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach(day => {
-          const div = document.createElement("div");
-          div.textContent = day;
-          weekdays.appendChild(div);
-        });
-        section.appendChild(weekdays);
+      const grid = document.createElement("div");
+      grid.className = "calendar-grid";
 
-        const grid = document.createElement("div");
-        grid.className = "calendar-grid";
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const startDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const startDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-
-        for (let i = 0; i < startDay; i++) {
-          const empty = document.createElement("div");
-          grid.appendChild(empty);
-        }
-
-        for (let d = 1; d <= daysInMonth; d++) {
-          const cellDate = new Date(year, month, d);
-          const dayEl = document.createElement("div");
-          dayEl.classList.add("day");
-          const dateKey = `${cellDate.getFullYear()}-${cellDate.getMonth() + 1}-${cellDate.getDate()}`;
-          const mmdd = `${cellDate.getMonth() + 1}-${cellDate.getDate()}`;
-
-          if (dateKey === todayStr) dayEl.classList.add("today");
-          if (cellDate < new Date(today.getFullYear(), today.getMonth(), today.getDate())) dayEl.classList.add("past");
-          if (cellDate.getDay() === 2 || cellDate.getDay() === 3) dayEl.classList.add("grayed");
-          if (holidays[mmdd]) dayEl.style.border = "2px solid gold";
-
-          dayEl.dataset.date = dateKey;
-          dayEl.innerHTML = `<span>${d}</span>`;
-
-          grid.appendChild(dayEl);
-        }
-
-        section.appendChild(grid);
-        calendarContainer.appendChild(section);
+      for (let i = 0; i < startDay; i++) {
+        const empty = document.createElement("div");
+        grid.appendChild(empty);
       }
 
-      monthLabel.textContent = `${baseDate.toLocaleString('default', { month: 'long' })} ${baseDate.getFullYear()}`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cellDate = new Date(year, month, d);
+        const dayEl = document.createElement("div");
+        dayEl.classList.add("day");
+        const dateKey = `${cellDate.getFullYear()}-${cellDate.getMonth() + 1}-${cellDate.getDate()}`;
+        const mmdd = `${cellDate.getMonth() + 1}-${cellDate.getDate()}`;
+
+        if (dateKey === todayStr) dayEl.classList.add("today");
+        if (cellDate < today) dayEl.classList.add("past");
+        if (cellDate.getDay() === 2 || cellDate.getDay() === 3) dayEl.classList.add("grayed");
+        if (holidays[mmdd]) dayEl.style.border = "2px solid gold";
+
+        dayEl.dataset.date = dateKey;
+        dayEl.innerHTML = `<span>${d}</span>`;
+
+        grid.appendChild(dayEl);
+      }
+
+      section.appendChild(grid);
+      calendarContainer.appendChild(section);
+
+      monthOffset++;
     }
 
-    function changeMonth(offset) {
-      currentDate.setMonth(currentDate.getMonth() + offset);
-      renderCalendar();
-    }
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+        renderNextMonth();
+      }
+    });
 
-    renderCalendar();
+    // Initial load
+    renderNextMonth();
+    renderNextMonth();
   </script>
 </body>
 </html>
