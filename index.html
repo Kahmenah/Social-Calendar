@@ -217,119 +217,166 @@
     </div>
   </div>
   <script>
-    const today = new Date();
-    let currentDate = new Date();
+  const today = new Date();
+  let currentDate = new Date();
 
-    const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
-    const calendar = document.getElementById("calendar");
-    const modal = document.getElementById("modal");
-    const contentType = document.getElementById("contentType");
-    const contentText = document.getElementById("contentText");
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const monthLabel = document.getElementById("monthLabel");
-    let activeDay = null;
+  const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
+  const calendar = document.getElementById("calendar");
+  const modal = document.getElementById("modal");
+  const contentType = document.getElementById("contentType");
+  const contentText = document.getElementById("contentText");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const monthLabel = document.getElementById("monthLabel");
+  let activeDay = null;
 
-    function renderCalendar() {
-      calendar.innerHTML = "";
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-      const firstDayOfMonth = new Date(year, month, 1);
-      const startDay = firstDayOfMonth.getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const totalSlots = 35; // 5 weeks * 7 days
+  // Sample holiday list (expandable)
+  const holidays = {
+    "1-1": "New Year's Day",
+    "1-15": "Martin Luther King Jr. Day",
+    "2-19": "Presidents' Day",
+    "5-27": "Memorial Day",
+    "6-19": "Juneteenth National Independence Day",
+    "7-4": "Independence Day",
+    "9-2": "Labor Day",
+    "10-14": "Columbus Day",
+    "11-11": "Veterans Day",
+    "11-28": "Thanksgiving Day",
+    "12-25": "Christmas Day"
+  };
 
-      monthLabel.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
+  function renderCalendar() {
+    calendar.innerHTML = "";
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    const firstDayOfMonth = new Date(year, month, 1);
+    const startDay = firstDayOfMonth.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const totalSlots = 35;
 
-      const days = [];
-      for (let i = 0; i < startDay; i++) {
-        days.push(null);
-      }
-      for (let i = 1; i <= daysInMonth; i++) {
-        days.push(new Date(year, month, i));
-      }
-      while (days.length < totalSlots) {
-        const nextDate = new Date(year, month, daysInMonth + (days.length - startDay - daysInMonth) + 1);
-        days.push(nextDate);
-      }
+    monthLabel.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
 
-      days.forEach(date => {
-        const dayEl = document.createElement("div");
-        dayEl.classList.add("day");
+    const days = [];
+    for (let i = 0; i < startDay; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
+    while (days.length < totalSlots) {
+      const nextDate = new Date(year, month, daysInMonth + (days.length - startDay - daysInMonth) + 1);
+      days.push(nextDate);
+    }
 
-        if (!date) {
-          calendar.appendChild(dayEl);
-          return;
-        }
+    days.forEach(date => {
+      const dayEl = document.createElement("div");
+      dayEl.classList.add("day");
 
-        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-        if (dateKey === todayStr) dayEl.classList.add("today");
-        if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) dayEl.classList.add("past");
-        if (date.getDay() === 2 || date.getDay() === 3) dayEl.classList.add("grayed");
-        if (date.getMonth() !== month) dayEl.style.opacity = 0.4;
-
-        dayEl.dataset.date = dateKey;
-        dayEl.innerHTML = `<span>${date.getDate()}</span>`;
-
-        if (savedData[dateKey]) {
-          savedData[dateKey].forEach((event, index) => {
-            addEventElement(dayEl, dateKey, event, index);
-          });
-        }
-
-        dayEl.addEventListener("click", () => {
-          activeDay = dayEl;
-          modal.style.display = "flex";
-          contentText.value = "";
-          contentType.value = "youtube";
-        });
-
+      if (!date) {
         calendar.appendChild(dayEl);
+        return;
+      }
+
+      const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+      const mmdd = `${date.getMonth() + 1}-${date.getDate()}`;
+      if (dateKey === todayStr) dayEl.classList.add("today");
+      if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) dayEl.classList.add("past");
+      if (date.getDay() === 2 || date.getDay() === 3) dayEl.classList.add("grayed");
+      if (date.getMonth() !== month) dayEl.style.opacity = 0.4;
+      if (holidays[mmdd]) dayEl.style.border = "2px solid gold";
+
+      dayEl.dataset.date = dateKey;
+      dayEl.innerHTML = `<span>${date.getDate()}</span>`;
+
+      if (savedData[dateKey]) {
+        savedData[dateKey].forEach((event, index) => {
+          addEventElement(dayEl, dateKey, event, index);
+        });
+      }
+
+      dayEl.addEventListener("click", (e) => {
+        if (e.target.classList.contains("delete-btn")) return; // don't open modal on delete click
+        activeDay = dayEl;
+        modal.style.display = "flex";
+        contentText.value = "";
+        contentType.value = "youtube";
       });
-    }
 
-    function addEventElement(container, dateKey, event, index) {
-      const label = document.createElement("div");
-      label.classList.add("event", event.type);
-      label.innerHTML = `<span>📌</span> ${event.text} <button class='delete-btn' onclick='deleteEvent(\"${dateKey}\", ${index})'>✖</button>`;
-      container.appendChild(label);
-    }
+      dayEl.addEventListener("dragover", e => e.preventDefault());
+      dayEl.addEventListener("drop", e => {
+        e.preventDefault();
+        const eventData = JSON.parse(e.dataTransfer.getData("text/plain"));
+        const oldDate = eventData.date;
+        const newDate = dayEl.dataset.date;
+        const eventObj = savedData[oldDate][eventData.index];
 
-    function deleteEvent(dateKey, index) {
-      savedData[dateKey].splice(index, 1);
-      if (savedData[dateKey].length === 0) delete savedData[dateKey];
-      localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-      renderCalendar();
-    }
+        // Move event
+        if (!savedData[newDate]) savedData[newDate] = [];
+        savedData[newDate].push(eventObj);
+        savedData[oldDate].splice(eventData.index, 1);
+        if (savedData[oldDate].length === 0) delete savedData[oldDate];
 
-    function changeMonth(offset) {
-      currentDate.setMonth(currentDate.getMonth() + offset);
-      renderCalendar();
-    }
+        localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+        renderCalendar();
+      });
 
-    closeModalBtn.addEventListener("click", () => {
-      modal.style.display = "none";
+      calendar.appendChild(dayEl);
+    });
+  }
+
+  function addEventElement(container, dateKey, event, index) {
+    const label = document.createElement("div");
+    label.classList.add("event", event.type);
+    label.textContent = event.text;
+    label.draggable = true;
+
+    label.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", JSON.stringify({ date: dateKey, index }));
     });
 
-    window.addEventListener("click", (e) => {
-      if (e.target === modal) modal.style.display = "none";
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.textContent = "✖";
+    deleteBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      deleteEvent(dateKey, index);
     });
 
-    function addEventToDay() {
-      const type = contentType.value;
-      const text = contentText.value.trim();
-      if (!text || !type || !activeDay) return;
-      const dateKey = activeDay.dataset.date;
-      const newEvent = { type, text };
-      if (!savedData[dateKey]) savedData[dateKey] = [];
-      savedData[dateKey].push(newEvent);
-      localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-      addEventElement(activeDay, dateKey, newEvent, savedData[dateKey].length - 1);
-      modal.style.display = "none";
-      activeDay = null;
-    }
+    label.appendChild(deleteBtn);
+    container.appendChild(label);
+  }
 
+  function deleteEvent(dateKey, index) {
+    savedData[dateKey].splice(index, 1);
+    if (savedData[dateKey].length === 0) delete savedData[dateKey];
+    localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
     renderCalendar();
-  </script>
+  }
+
+  function changeMonth(offset) {
+    currentDate.setMonth(currentDate.getMonth() + offset);
+    renderCalendar();
+  }
+
+  closeModalBtn.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
+
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) modal.style.display = "none";
+  });
+
+  function addEventToDay() {
+    const type = contentType.value;
+    const text = contentText.value.trim();
+    if (!text || !type || !activeDay) return;
+    const dateKey = activeDay.dataset.date;
+    const newEvent = { type, text };
+    if (!savedData[dateKey]) savedData[dateKey] = [];
+    savedData[dateKey].push(newEvent);
+    localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+    addEventElement(activeDay, dateKey, newEvent, savedData[dateKey].length - 1);
+    modal.style.display = "none";
+    activeDay = null;
+  }
+
+  renderCalendar();
+</script>
 </body>
 </html>
