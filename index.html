@@ -4,29 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulakra Publishing Calendar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #300000;
-      --fg: #ffffff;
+      --bg: #1e1e24;
+      --fg: #f0f0f0;
       --gray: #2a2a2a;
-      --accent: #ff4081;
-      --youtube: #ff0000;
-      --shorts: #ff9800;
-      --tiktok: #69c9d0;
-      --instagram: #e1306c;
+      --gray-light: #3b3b3b;
+      --accent: #00bfa6;
+      --youtube: #e53935;
+      --shorts: #fb8c00;
+      --tiktok: #00cec9;
+      --instagram: #d81b60;
     }
 
     body {
       background: var(--bg);
       color: var(--fg);
-      font-family: sans-serif;
+      font-family: 'Inter', sans-serif;
       margin: 0;
-      padding: 1rem;
+      padding: 1rem 1rem 1rem 6rem;
+    }
+
+    .logo {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+      z-index: 1000;
     }
 
     h1, h2 {
       text-align: center;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
+      font-weight: 600;
     }
 
     .weekdays {
@@ -34,8 +49,9 @@
       grid-template-columns: repeat(7, 1fr);
       margin-bottom: 0.5rem;
       text-align: center;
-      font-weight: bold;
-      color: #ccc;
+      font-weight: 600;
+      color: #bbbbbb;
+      font-size: 0.95rem;
     }
 
     .calendar {
@@ -51,11 +67,17 @@
       min-height: 100px;
       position: relative;
       cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .day:hover {
+      background: var(--gray-light);
     }
 
     .day.grayed {
-      background: #550000;
-      opacity: 0.7;
+      background: #333;
+      opacity: 1;
+      color: #aaa;
     }
 
     .day span {
@@ -63,18 +85,19 @@
       top: 6px;
       right: 8px;
       font-size: 0.8rem;
-      color: #999;
+      color: #ccc;
     }
 
     .event {
       margin-top: 1.2rem;
       font-size: 0.75rem;
-      padding: 2px 6px;
+      padding: 4px 8px;
       border-radius: 4px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       justify-content: space-between;
+      color: #fff;
     }
 
     .youtube { background-color: var(--youtube); }
@@ -88,29 +111,31 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
       display: none;
+      z-index: 999;
     }
 
     .modal-content {
-      background: #440000;
-      padding: 1.5rem;
-      border-radius: 8px;
+      background: #282c34;
+      padding: 2rem;
+      border-radius: 10px;
       text-align: center;
       position: relative;
       width: 90%;
       max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
     }
 
     .close-modal {
       position: absolute;
-      top: 8px;
-      right: 12px;
+      top: 10px;
+      right: 14px;
       font-size: 1.5rem;
-      color: #fff;
+      color: #aaa;
       cursor: pointer;
       font-weight: bold;
       user-select: none;
@@ -120,17 +145,30 @@
     .modal-content select,
     .modal-content button {
       margin: 0.5rem 0;
-      padding: 0.5rem;
+      padding: 0.6rem;
       width: 100%;
-      border-radius: 4px;
+      border-radius: 6px;
       border: none;
       font-size: 1rem;
+      font-family: inherit;
+    }
+
+    .modal-content input,
+    .modal-content select {
+      background: #1e1e24;
+      color: #fff;
+      border: 1px solid #444;
     }
 
     .modal-content button {
       background: var(--accent);
       color: white;
-      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    .modal-content button:hover {
+      background: #00a58d;
     }
 
     .delete-btn {
@@ -149,6 +187,7 @@
   </style>
 </head>
 <body>
+  <img src="/mnt/data/d2d2b8d1-a6d9-48ca-bc20-01eba01a7ca7.png" alt="Simulakra Logo" class="logo" />
   <h1>Simulakra Publishing Calendar</h1>
   <h2>July 2025</h2>
   <div class="weekdays">
