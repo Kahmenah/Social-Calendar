@@ -42,6 +42,7 @@
     const closeModalBtn = document.getElementById("closeModalBtn");
     const contentType = document.getElementById("contentType");
     const contentText = document.getElementById("contentText");
+    const addEventBtn = document.getElementById("addEventBtn");
 
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -102,6 +103,8 @@
       modal.style.display = "none";
       await loadEventsFromFirestore();
     }
+
+    addEventBtn.addEventListener("click", addEventToDay);
 
     function renderMonth(offset) {
       const date = new Date();
@@ -251,9 +254,5 @@
       <button id="addEventBtn">Add</button>
     </div>
   </div>
-
-  <script>
-    document.getElementById("addEventBtn").addEventListener("click", addEventToDay);
-  </script>
 </body>
 </html>
