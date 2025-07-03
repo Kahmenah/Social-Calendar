@@ -18,6 +18,9 @@
       --instagram: #d81b60;
       --highlight: #00bfa6;
     }
+    html {
+      scroll-behavior: smooth;
+    }
     body {
       background: var(--bg);
       color: var(--fg);
@@ -25,6 +28,7 @@
       margin: 0;
       padding: 0.5rem;
       overflow-y: scroll;
+      height: 100vh;
     }
     .container {
       max-width: 1000px;
@@ -98,6 +102,65 @@
     .shorts { background-color: var(--shorts); }
     .tiktok { background-color: var(--tiktok); color: #000; }
     .instagram { background-color: var(--instagram); color: #fff; }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: #282c34;
+      padding: 2rem;
+      border-radius: 10px;
+      text-align: center;
+      position: relative;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    .close-modal {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 1.5rem;
+      color: #aaa;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+    }
+    .modal-content input,
+    .modal-content select,
+    .modal-content button {
+      margin: 0.5rem 0;
+      padding: 0.6rem;
+      width: 100%;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .modal-content input,
+    .modal-content select {
+      background: #1e1e24;
+      color: #fff;
+      border: 1px solid #444;
+    }
+    .modal-content button {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+    .modal-content button:hover {
+      background: #00a58d;
+    }
   </style>
 </head>
 <body>
@@ -105,6 +168,21 @@
   <div class="container">
     <h1>Simulakra Publishing Calendar</h1>
     <div id="calendarContainer"></div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="close-modal" id="closeModalBtn">&times;</div>
+      <h3>Add Content</h3>
+      <select id="contentType">
+        <option value="youtube">YouTube Video</option>
+        <option value="shorts">YouTube Shorts</option>
+        <option value="tiktok">TikTok</option>
+        <option value="instagram">Instagram Image</option>
+      </select>
+      <input type="text" id="contentText" placeholder="Enter content label..." />
+      <button onclick="addEventToDay()">Add</button>
+    </div>
   </div>
 
   <script>
@@ -123,6 +201,11 @@
     };
 
     const calendarContainer = document.getElementById("calendarContainer");
+    const modal = document.getElementById("modal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const contentType = document.getElementById("contentType");
+    const contentText = document.getElementById("contentText");
+    let activeDay = null;
     let monthOffset = 0;
     const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
 
@@ -165,34 +248,6 @@
         dateLabel.textContent = day;
         dayEl.appendChild(dateLabel);
 
-        if (savedData[dateKey]) {
-          savedData[dateKey].forEach((event, idx) => {
-            const eventEl = document.createElement("div");
-            eventEl.className = `event ${event.type}`;
-            eventEl.textContent = event.text;
-            eventEl.draggable = true;
-
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "delete-btn";
-            deleteBtn.textContent = "✖";
-            deleteBtn.onclick = e => {
-              e.stopPropagation();
-              savedData[dateKey].splice(idx, 1);
-              if (savedData[dateKey].length === 0) delete savedData[dateKey];
-              localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-              dayEl.removeChild(eventEl);
-            };
-
-            eventEl.appendChild(deleteBtn);
-
-            eventEl.addEventListener("dragstart", e => {
-              e.dataTransfer.setData("text/plain", JSON.stringify({ date: dateKey, index: idx }));
-            });
-
-            dayEl.appendChild(eventEl);
-          });
-        }
-
         dayEl.addEventListener("click", () => {
           activeDay = dayEl;
           modal.style.display = "flex";
@@ -210,14 +265,73 @@
           savedData[data.date].splice(data.index, 1);
           if (savedData[data.date].length === 0) delete savedData[data.date];
           localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-          location.reload();
+          document.querySelectorAll('.day').forEach(el => el.innerHTML = "");
+          calendarContainer.innerHTML = "";
+          monthOffset = 0;
+          for (let i = 0; i <= offset; i++) renderMonth(i);
         });
+
+        if (savedData[dateKey]) {
+          savedData[dateKey].forEach((event, idx) => {
+            dayEl.appendChild(createEventElement(event, dateKey, idx));
+          });
+        }
 
         grid.appendChild(dayEl);
       }
 
       calendarContainer.appendChild(grid);
     }
+
+    function createEventElement(event, dateKey, index) {
+      const eventEl = document.createElement("div");
+      eventEl.className = `event ${event.type}`;
+      eventEl.textContent = event.text;
+      eventEl.draggable = true;
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "✖";
+      deleteBtn.onclick = e => {
+        e.stopPropagation();
+        if (savedData[dateKey]) {
+          savedData[dateKey].splice(index, 1);
+          if (savedData[dateKey].length === 0) delete savedData[dateKey];
+          localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+          eventEl.remove();
+        }
+      };
+
+      eventEl.appendChild(deleteBtn);
+
+      eventEl.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text/plain", JSON.stringify({ date: dateKey, index }));
+      });
+
+      return eventEl;
+    }
+
+    function addEventToDay() {
+      const type = contentType.value;
+      const text = contentText.value.trim();
+      if (!text || !type || !activeDay) return;
+      const dateKey = activeDay.dataset.date;
+      const newEvent = { type, text };
+      if (!savedData[dateKey]) savedData[dateKey] = [];
+      savedData[dateKey].push(newEvent);
+      localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+      activeDay.appendChild(createEventElement(newEvent, dateKey, savedData[dateKey].length - 1));
+      modal.style.display = "none";
+      activeDay = null;
+    }
+
+    closeModalBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    window.addEventListener("click", e => {
+      if (e.target === modal) modal.style.display = "none";
+    });
 
     window.addEventListener("scroll", () => {
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
