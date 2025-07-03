@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulakra Publishing Calendar</title>
 
+  <!-- Firebase and App Script -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -70,6 +71,7 @@
         document.getElementById("logoutBtn").addEventListener("click", async () => {
           await signOut(auth);
           currentUserInfo.textContent = "";
+          location.reload();
         });
         loadEventsFromFirestore();
       } else {
