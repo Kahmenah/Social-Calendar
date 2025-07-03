@@ -18,18 +18,13 @@
       --instagram: #d81b60;
       --highlight: #00bfa6;
     }
-
     body {
-      margin: 0;
-      padding: 2rem 1rem;
-      background-color: var(--bg);
+      background: var(--bg);
       color: var(--fg);
       font-family: 'Inter', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      margin: 0;
+      padding: 1rem 1rem 1rem 6rem;
     }
-
     .logo {
       position: fixed;
       top: 10px;
@@ -41,21 +36,24 @@
       box-shadow: 0 0 8px rgba(0,0,0,0.5);
       z-index: 1000;
     }
-
     h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
       font-family: 'Playfair Display', serif;
       font-size: 2.5rem;
-      margin: 1rem 0 0.25rem;
     }
-
+    h2 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-size: 1.75rem;
+      font-weight: 600;
+    }
     .calendar-nav {
       display: flex;
       justify-content: center;
-      align-items: center;
       gap: 0.5rem;
-      margin: 0.5rem 0 1rem;
+      margin-bottom: 0.75rem;
     }
-
     .calendar-nav button {
       background: var(--accent);
       border: none;
@@ -65,46 +63,43 @@
       cursor: pointer;
       font-size: 0.85rem;
     }
-
-    .calendar-container {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-
-    .weekdays {
+    .weekdays, .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       text-align: center;
+    }
+    .weekdays {
       font-weight: 600;
       color: #bbbbbb;
       font-size: 0.95rem;
       margin-bottom: 0.5rem;
     }
-
     .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
       gap: 0.3rem;
     }
-
     .day {
-      position: relative;
+      padding: 0.7rem;
       background: var(--gray);
       border-radius: 8px;
-      min-height: 100px;
-      padding: 0.7rem 0.5rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
+      min-height: 80px;
+      position: relative;
       cursor: pointer;
       transition: background 0.3s ease;
     }
-
     .day:hover {
       background: var(--gray-light);
     }
-
+    .day.grayed {
+      background: #333;
+      color: #888;
+    }
+    .day.past {
+      opacity: 0.5;
+    }
+    .day.today {
+      outline: 2px solid var(--highlight);
+      outline-offset: -2px;
+    }
     .day span {
       position: absolute;
       top: 6px;
@@ -112,27 +107,87 @@
       font-size: 0.8rem;
       color: #ccc;
     }
-
     .event {
-      margin-top: 0.3rem;
+      margin-top: 0.5rem;
       font-size: 0.7rem;
       padding: 3px 6px;
       border-radius: 4px;
       display: flex;
       align-items: center;
+      gap: 4px;
       justify-content: space-between;
-      background: #444;
       color: #fff;
     }
-
-    .event:last-child {
-      margin-bottom: 0.6rem;
-    }
-
     .youtube { background-color: var(--youtube); }
     .shorts { background-color: var(--shorts); }
     .tiktok { background-color: var(--tiktok); color: #000; }
     .instagram { background-color: var(--instagram); color: #fff; }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      display: none;
+      z-index: 999;
+    }
+    .modal-content {
+      background: #282c34;
+      padding: 2rem;
+      border-radius: 10px;
+      text-align: center;
+      position: relative;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    .close-modal {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 1.5rem;
+      color: #aaa;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+    }
+    .modal-content input,
+    .modal-content select,
+    .modal-content button {
+      margin: 0.5rem 0;
+      padding: 0.6rem;
+      width: 100%;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .modal-content input,
+    .modal-content select {
+      background: #1e1e24;
+      color: #fff;
+      border: 1px solid #444;
+    }
+    .modal-content button {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+    .modal-content button:hover {
+      background: #00a58d;
+    }
+    .delete-btn {
+      background: transparent;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -143,12 +198,10 @@
     <h2 id="monthLabel"></h2>
     <button onclick="changeMonth(1)">Next &raquo;</button>
   </div>
-  <div class="calendar-container">
-    <div class="weekdays">
-      <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-    </div>
-    <div class="calendar" id="calendar"></div>
+  <div class="weekdays">
+    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
   </div>
+  <div class="calendar" id="calendar"></div>
   <div class="modal" id="modal">
     <div class="modal-content">
       <div class="close-modal" id="closeModalBtn">&times;</div>
@@ -164,140 +217,166 @@
     </div>
   </div>
   <script>
-    const today = new Date();
-    let currentDate = new Date();
+  const today = new Date();
+  let currentDate = new Date();
 
-    const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
-    const calendar = document.getElementById("calendar");
-    const modal = document.getElementById("modal");
-    const contentType = document.getElementById("contentType");
-    const contentText = document.getElementById("contentText");
-    const closeModalBtn = document.getElementById("closeModalBtn");
-    const monthLabel = document.getElementById("monthLabel");
-    let activeDay = null;
+  const savedData = JSON.parse(localStorage.getItem("simulakraCalendar")) || {};
+  const calendar = document.getElementById("calendar");
+  const modal = document.getElementById("modal");
+  const contentType = document.getElementById("contentType");
+  const contentText = document.getElementById("contentText");
+  const closeModalBtn = document.getElementById("closeModalBtn");
+  const monthLabel = document.getElementById("monthLabel");
+  let activeDay = null;
 
-    const holidays = {
-      "1-1": "New Year's Day",
-      "1-15": "Martin Luther King Jr. Day",
-      "2-19": "Presidents' Day",
-      "5-27": "Memorial Day",
-      "6-19": "Juneteenth National Independence Day",
-      "7-4": "Independence Day",
-      "9-2": "Labor Day",
-      "10-14": "Columbus Day",
-      "11-11": "Veterans Day",
-      "11-28": "Thanksgiving Day",
-      "12-25": "Christmas Day"
-    };
+  // Sample holiday list (expandable)
+  const holidays = {
+    "1-1": "New Year's Day",
+    "1-15": "Martin Luther King Jr. Day",
+    "2-19": "Presidents' Day",
+    "5-27": "Memorial Day",
+    "6-19": "Juneteenth National Independence Day",
+    "7-4": "Independence Day",
+    "9-2": "Labor Day",
+    "10-14": "Columbus Day",
+    "11-11": "Veterans Day",
+    "11-28": "Thanksgiving Day",
+    "12-25": "Christmas Day"
+  };
 
-    function renderCalendar() {
-      calendar.innerHTML = "";
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-      const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-      const firstDayOfMonth = new Date(year, month, 1);
-      const startDay = firstDayOfMonth.getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const totalSlots = 35;
+  function renderCalendar() {
+    calendar.innerHTML = "";
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    const firstDayOfMonth = new Date(year, month, 1);
+    const startDay = firstDayOfMonth.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const totalSlots = 35;
 
-      monthLabel.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
+    monthLabel.textContent = `${currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
 
-      const days = [];
-      for (let i = 0; i < startDay; i++) days.push(null);
-      for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
-      while (days.length < totalSlots) {
-        const nextDate = new Date(year, month, daysInMonth + (days.length - startDay - daysInMonth) + 1);
-        days.push(nextDate);
+    const days = [];
+    for (let i = 0; i < startDay; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
+    while (days.length < totalSlots) {
+      const nextDate = new Date(year, month, daysInMonth + (days.length - startDay - daysInMonth) + 1);
+      days.push(nextDate);
+    }
+
+    days.forEach(date => {
+      const dayEl = document.createElement("div");
+      dayEl.classList.add("day");
+
+      if (!date) {
+        calendar.appendChild(dayEl);
+        return;
       }
 
-      days.forEach(date => {
-        const dayEl = document.createElement("div");
-        dayEl.classList.add("day");
+      const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+      const mmdd = `${date.getMonth() + 1}-${date.getDate()}`;
+      if (dateKey === todayStr) dayEl.classList.add("today");
+      if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) dayEl.classList.add("past");
+      if (date.getDay() === 2 || date.getDay() === 3) dayEl.classList.add("grayed");
+      if (date.getMonth() !== month) dayEl.style.opacity = 0.4;
+      if (holidays[mmdd]) dayEl.style.border = "2px solid gold";
 
-        if (!date) {
-          calendar.appendChild(dayEl);
-          return;
-        }
+      dayEl.dataset.date = dateKey;
+      dayEl.innerHTML = `<span>${date.getDate()}</span>`;
 
-        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-        const mmdd = `${date.getMonth() + 1}-${date.getDate()}`;
-        if (dateKey === todayStr) dayEl.classList.add("today");
-        if (date < new Date(today.getFullYear(), today.getMonth(), today.getDate())) dayEl.classList.add("past");
-        if (date.getDay() === 2 || date.getDay() === 3) dayEl.classList.add("grayed");
-        if (date.getMonth() !== month) dayEl.style.opacity = 0.4;
-        if (holidays[mmdd]) dayEl.style.border = "2px solid gold";
-
-        dayEl.dataset.date = dateKey;
-        dayEl.innerHTML = `<span>${date.getDate()}</span>`;
-
-        if (savedData[dateKey]) {
-          savedData[dateKey].forEach((event, index) => {
-            addEventElement(dayEl, dateKey, event, index);
-          });
-        }
-
-        dayEl.addEventListener("click", (e) => {
-          if (e.target.classList.contains("delete-btn")) return;
-          activeDay = dayEl;
-          modal.style.display = "flex";
-          contentText.value = "";
-          contentType.value = "youtube";
+      if (savedData[dateKey]) {
+        savedData[dateKey].forEach((event, index) => {
+          addEventElement(dayEl, dateKey, event, index);
         });
+      }
 
-        calendar.appendChild(dayEl);
+      dayEl.addEventListener("click", (e) => {
+        if (e.target.classList.contains("delete-btn")) return; // don't open modal on delete click
+        activeDay = dayEl;
+        modal.style.display = "flex";
+        contentText.value = "";
+        contentType.value = "youtube";
       });
-    }
 
-    function addEventElement(container, dateKey, event, index) {
-      const label = document.createElement("div");
-      label.classList.add("event", event.type);
-      label.textContent = event.text;
-      const deleteBtn = document.createElement("button");
-      deleteBtn.className = "delete-btn";
-      deleteBtn.textContent = "✖";
-      deleteBtn.addEventListener("click", e => {
-        e.stopPropagation();
-        deleteEvent(dateKey, index);
+      dayEl.addEventListener("dragover", e => e.preventDefault());
+      dayEl.addEventListener("drop", e => {
+        e.preventDefault();
+        const eventData = JSON.parse(e.dataTransfer.getData("text/plain"));
+        const oldDate = eventData.date;
+        const newDate = dayEl.dataset.date;
+        const eventObj = savedData[oldDate][eventData.index];
+
+        // Move event
+        if (!savedData[newDate]) savedData[newDate] = [];
+        savedData[newDate].push(eventObj);
+        savedData[oldDate].splice(eventData.index, 1);
+        if (savedData[oldDate].length === 0) delete savedData[oldDate];
+
+        localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+        renderCalendar();
       });
-      label.appendChild(deleteBtn);
-      container.appendChild(label);
-    }
 
-    function deleteEvent(dateKey, index) {
-      savedData[dateKey].splice(index, 1);
-      if (savedData[dateKey].length === 0) delete savedData[dateKey];
-      localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-      renderCalendar();
-    }
+      calendar.appendChild(dayEl);
+    });
+  }
 
-    function changeMonth(offset) {
-      currentDate.setMonth(currentDate.getMonth() + offset);
-      renderCalendar();
-    }
+  function addEventElement(container, dateKey, event, index) {
+    const label = document.createElement("div");
+    label.classList.add("event", event.type);
+    label.textContent = event.text;
+    label.draggable = true;
 
-    closeModalBtn.addEventListener("click", () => {
-      modal.style.display = "none";
+    label.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", JSON.stringify({ date: dateKey, index }));
     });
 
-    window.addEventListener("click", (e) => {
-      if (e.target === modal) modal.style.display = "none";
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.textContent = "✖";
+    deleteBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      deleteEvent(dateKey, index);
     });
 
-    function addEventToDay() {
-      const type = contentType.value;
-      const text = contentText.value.trim();
-      if (!text || !type || !activeDay) return;
-      const dateKey = activeDay.dataset.date;
-      const newEvent = { type, text };
-      if (!savedData[dateKey]) savedData[dateKey] = [];
-      savedData[dateKey].push(newEvent);
-      localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
-      addEventElement(activeDay, dateKey, newEvent, savedData[dateKey].length - 1);
-      modal.style.display = "none";
-      activeDay = null;
-    }
+    label.appendChild(deleteBtn);
+    container.appendChild(label);
+  }
 
+  function deleteEvent(dateKey, index) {
+    savedData[dateKey].splice(index, 1);
+    if (savedData[dateKey].length === 0) delete savedData[dateKey];
+    localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
     renderCalendar();
-  </script>
+  }
+
+  function changeMonth(offset) {
+    currentDate.setMonth(currentDate.getMonth() + offset);
+    renderCalendar();
+  }
+
+  closeModalBtn.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
+
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) modal.style.display = "none";
+  });
+
+  function addEventToDay() {
+    const type = contentType.value;
+    const text = contentText.value.trim();
+    if (!text || !type || !activeDay) return;
+    const dateKey = activeDay.dataset.date;
+    const newEvent = { type, text };
+    if (!savedData[dateKey]) savedData[dateKey] = [];
+    savedData[dateKey].push(newEvent);
+    localStorage.setItem("simulakraCalendar", JSON.stringify(savedData));
+    addEventElement(activeDay, dateKey, newEvent, savedData[dateKey].length - 1);
+    modal.style.display = "none";
+    activeDay = null;
+  }
+
+  renderCalendar();
+</script>
 </body>
 </html>
