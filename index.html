@@ -24,9 +24,18 @@
       padding: 1rem;
     }
 
-    h1 {
+    h1, h2 {
       text-align: center;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 0.5rem;
+      text-align: center;
+      font-weight: bold;
+      color: #ccc;
     }
 
     .calendar {
@@ -72,7 +81,7 @@
     .instagram { background-color: var(--instagram); }
 
     @media (max-width: 600px) {
-      .calendar {
+      .weekdays, .calendar {
         grid-template-columns: repeat(2, 1fr);
       }
     }
@@ -80,14 +89,21 @@
 </head>
 <body>
   <h1>Content Publishing Calendar</h1>
+  <h2>July 2025</h2>
+  <div class="weekdays">
+    <div>Sun</div>
+    <div>Mon</div>
+    <div>Tue</div>
+    <div>Wed</div>
+    <div>Thu</div>
+    <div>Fri</div>
+    <div>Sat</div>
+  </div>
   <div class="calendar" id="calendar"></div>
 
   <script>
     const daysInMonth = 31;
-    const startDay = 1; // Assuming starts on Monday
     const calendar = document.getElementById("calendar");
-
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     for (let i = 0; i < daysInMonth; i++) {
       const date = new Date(2025, 6, i + 1); // July 2025
