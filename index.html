@@ -6,23 +6,178 @@
   <title>Simulakra Publishing Calendar</title>
 
 <script type="module">
-  // Import Firebase modules
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, setDoc, doc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, addDoc, deleteDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-  apiKey: "AIzaSyBI7ak0UMM6oynVLitop9HPzps6WCpsGF0",
-  authDomain: "simulakra-calendar.firebaseapp.com",
-  projectId: "simulakra-calendar",
-  storageBucket: "simulakra-calendar.firebasestorage.app",
-  messagingSenderId: "1032110905740",
-  appId: "1:1032110905740:web:d4b6a66336d07ecfebdea9"
-};
+    const firebaseConfig = {
+      apiKey: "AIzaSyBI7ak0UMM6oynVLitop9HPzps6WCpsGF0",
+      authDomain: "simulakra-calendar.firebaseapp.com",
+      projectId: "simulakra-calendar",
+      storageBucket: "simulakra-calendar.firebasestorage.app",
+      messagingSenderId: "1032110905740",
+      appId: "1:1032110905740:web:d4b6a66336d07ecfebdea9"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.firebaseDB = db;
-</script>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const eventsCol = collection(db, "calendarEvents");
+
+    const holidays = {
+      "1-1": "New Year's Day", "1-15": "Martin Luther King Jr. Day", "2-19": "Presidents' Day",
+      "5-27": "Memorial Day", "6-19": "Juneteenth", "7-4": "Independence Day",
+      "9-2": "Labor Day", "10-14": "Columbus Day", "11-11": "Veterans Day",
+      "11-28": "Thanksgiving", "12-25": "Christmas"
+    };
+
+    const calendarContainer = document.getElementById("calendarContainer");
+    const modal = document.getElementById("modal");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const contentType = document.getElementById("contentType");
+    const contentText = document.getElementById("contentText");
+    let activeDay = null;
+    let monthOffset = 0;
+    let allEvents = {};
+
+    async function loadEventsFromFirestore() {
+      const snapshot = await getDocs(eventsCol);
+      allEvents = {};
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (!allEvents[data.date]) allEvents[data.date] = [];
+        allEvents[data.date].push({ ...data, id: docSnap.id });
+      });
+
+      renderMonth(monthOffset);
+      monthOffset++;
+    }
+
+    async function addEventToDay() {
+      const type = contentType.value;
+      const text = contentText.value.trim();
+      if (!text || !type || !activeDay) return;
+
+      const dateKey = activeDay.dataset.date;
+      await addDoc(eventsCol, { date: dateKey, type, text });
+      modal.style.display = "none";
+      calendarContainer.innerHTML = "";
+      loadEventsFromFirestore();
+    }
+
+    function renderMonth(offset) {
+      const date = new Date();
+      date.setMonth(date.getMonth() + offset);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDay = new Date(year, month, 1).getDay();
+
+      const monthLabel = document.createElement("h2");
+      monthLabel.className = "month-label";
+      monthLabel.textContent = `${date.toLocaleString('default', { month: 'long' })} ${year}`;
+      calendarContainer.appendChild(monthLabel);
+
+      const grid = document.createElement("div");
+      grid.className = "calendar-grid";
+
+      for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement("div"));
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cellDate = new Date(year, month, day);
+        const dateKey = `${year}-${month + 1}-${day}`;
+        const mmdd = `${month + 1}-${day}`;
+        const dayEl = document.createElement("div");
+        dayEl.classList.add("day");
+        dayEl.dataset.date = dateKey;
+
+        if (holidays[mmdd]) {
+          const holidayLabel = document.createElement("div");
+          holidayLabel.classList.add("holiday");
+          holidayLabel.textContent = holidays[mmdd];
+          dayEl.appendChild(holidayLabel);
+        }
+
+        const dateLabel = document.createElement("span");
+        dateLabel.textContent = day;
+        dayEl.appendChild(dateLabel);
+
+        if (allEvents[dateKey]) {
+          allEvents[dateKey].forEach(event => {
+            const eventEl = document.createElement("div");
+            eventEl.className = `event ${event.type}`;
+            eventEl.textContent = event.text;
+            eventEl.draggable = true;
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-btn";
+            deleteBtn.textContent = "✖";
+            deleteBtn.onclick = async e => {
+              e.stopPropagation();
+              await deleteDoc(doc(db, "calendarEvents", event.id));
+              calendarContainer.innerHTML = "";
+              loadEventsFromFirestore();
+            };
+
+            eventEl.appendChild(deleteBtn);
+
+            eventEl.addEventListener("dragstart", e => {
+              e.dataTransfer.setData("text/plain", JSON.stringify(event));
+            });
+
+            dayEl.addEventListener("drop", async e => {
+              e.preventDefault();
+              const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+              if (dragged.id) {
+                await deleteDoc(doc(db, "calendarEvents", dragged.id));
+                await addDoc(eventsCol, {
+                  date: dateKey,
+                  text: dragged.text,
+                  type: dragged.type
+                });
+                calendarContainer.innerHTML = "";
+                loadEventsFromFirestore();
+              }
+            });
+
+            dayEl.addEventListener("dragover", e => e.preventDefault());
+            dayEl.appendChild(eventEl);
+          });
+        }
+
+        dayEl.addEventListener("click", () => {
+          activeDay = dayEl;
+          modal.style.display = "flex";
+          contentText.value = "";
+          contentType.value = "youtube";
+        });
+
+        grid.appendChild(dayEl);
+      }
+
+      calendarContainer.appendChild(grid);
+    }
+
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+        renderMonth(monthOffset);
+        monthOffset++;
+      }
+    });
+
+    closeModalBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    window.addEventListener("click", e => {
+      if (e.target === modal) modal.style.display = "none";
+    });
+
+    loadEventsFromFirestore();
+  </script>
+
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <style>
