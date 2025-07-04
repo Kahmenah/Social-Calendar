@@ -173,3 +173,14 @@
       opacity: 0.3;
       pointer-events: none;
     }
+ #currentUserInfo {
+      position: fixed;
+      top: 10px;
+      right: 80px;
+      font-size: 0.8rem;
+      color: #ccc;
+    }
+    .blackout {
+      background: #111;
+      opacity: 0.4;
+      pointer-events: none;
