@@ -7,9 +7,95 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://kahmenah.github.io/Social-Calendar/style.css" />
+  <style>
+    /* Styles for the logout button */
+    #topRightLogout {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        color: #374151;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        z-index: 1001;
+        display: none; /* Hidden by default */
+    }
+    #topRightLogout:hover {
+        background-color: #e5e7eb;
+    }
+    
+    /* Styles for the day of the week labels */
+    .day-labels {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        margin-bottom: 0.5rem;
+        padding: 0 0.5rem;
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 0.8rem;
+    }
+    .day-label {
+        text-align: center;
+    }
+
+    /* Base class for time blocks to make them span edge-to-edge */
+    .day-time-block {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 2px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-left: -4px; 
+        margin-right: -4px;
+    }
+
+    /* YouTube time block */
+    .saturday-block {
+        background-color: #ff0000; /* YouTube Red */
+        color: #ffffff; /* White text for contrast */
+        margin-top: 4px;
+    }
+    .saturday-block svg {
+        width: 12px;
+        height: 12px;
+        margin-right: 4px;
+    }
+
+    /* Shorts time block */
+    .shorts-block {
+        background-color: #ffffff; /* White */
+        color: #1f2937; /* Dark gray text */
+        border-top: 1px solid #f3f4f6; /* Light separator */
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    /* New styles for drop zones */
+    .drop-zone {
+        min-height: 10px; /* Gives a small area to drop into */
+        display: flex;
+        flex-direction: column;
+        gap: 4px; /* Space between dropped events in the same slot */
+        padding: 5px 0;
+        transition: background-color 0.2s ease;
+        border-radius: 4px;
+        margin: 0 -4px; /* Counteract parent padding */
+    }
+
+    .drop-zone.drag-over {
+        background-color: #e0f2fe; /* Light blue highlight on drag over */
+        min-height: 30px; /* Make target bigger on hover */
+    }
+  </style>
 </head>
 <body>
   <button id="topRightLogout">Logout</button>
+
   <div id="loginModal" class="modal" style="display:none;">
     <div class="modal-content">
       <h2>Login to Simulakra Calendar</h2>
@@ -23,7 +109,6 @@
     </div>
   </div>
 
-  <div id="currentUserInfo" style="text-align:center;margin:1rem 0;"></div>
   <img src="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" alt="Simulakra Logo" class="logo" />
   <div class="container">
     <h1>Simulakra Publishing Calendar</h1>
@@ -48,7 +133,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot
+      getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import {
       getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut
@@ -73,7 +158,7 @@
     let monthOffset = 0;
     let activeDay = null;
     let loadedMonths = new Set();
-    let unsubscribe; // Variable to hold the listener cleanup function
+    let unsubscribe; 
 
     const holidays = {
       "1-1": "New Year's Day", "1-15": "Martin Luther King Jr. Day", "2-19": "Presidents' Day",
@@ -85,14 +170,13 @@
     const loginModal = document.getElementById("loginModal");
     const loginForm = document.getElementById("loginForm");
     const loginError = document.getElementById("loginError");
-    const currentUserInfo = document.getElementById("currentUserInfo");
-    const topRightLogout = document.getElementById("topRightLogout");
     const calendarContainer = document.getElementById("calendarContainer");
     const modal = document.getElementById("modal");
     const closeModalBtn = document.getElementById("closeModalBtn");
     const contentType = document.getElementById("contentType");
     const contentText = document.getElementById("contentText");
     const addEventBtn = document.getElementById("addEventBtn");
+    const topRightLogout = document.getElementById("topRightLogout");
 
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const email = loginForm.email.value;
@@ -123,13 +207,10 @@
 
     onAuthStateChanged(auth, user => {
       if (user) {
-        // User is logged in
         eventsCol = collection(db, `users/${user.uid}/calendarEvents`);
         loginModal.style.display = "none";
-        currentUserInfo.innerHTML = `Logged in as: ${user.email}`;
         topRightLogout.style.display = "block";
 
-        // Set up the real-time listener
         unsubscribe = onSnapshot(eventsCol, (snapshot) => {
           allEvents = {};
           snapshot.forEach(docSnap => {
@@ -137,25 +218,21 @@
             if (!allEvents[data.date]) allEvents[data.date] = [];
             allEvents[data.date].push({ ...data, id: docSnap.id });
           });
-          // Re-render the calendar with the new data
           renderCalendar();
         });
 
       } else {
-        // User is logged out
-        if (unsubscribe) {
-          unsubscribe(); // Detach the listener
-        }
+        if (unsubscribe) unsubscribe(); 
         loginModal.style.display = "flex";
-        currentUserInfo.textContent = "";
         topRightLogout.style.display = "none";
+        calendarContainer.innerHTML = ""; 
       }
     });
     
     function renderCalendar() {
         calendarContainer.innerHTML = "";
         loadedMonths.clear();
-        monthOffset = 0;
+        monthOffset = 0; 
         renderMonth(monthOffset);
     }
 
@@ -166,15 +243,16 @@
       if (!text || !type || !activeDay) return;
 
       const dateKey = activeDay.dataset.date;
-      await addDoc(eventsCol, { date: dateKey, type, text });
+      // By default, add to the 'unsorted' slot
+      await addDoc(eventsCol, { date: dateKey, type, text, slot: 'unsorted' });
       modal.style.display = "none";
-      // No need to call loadEventsFromFirestore() anymore
     }
 
     addEventBtn.addEventListener("click", addEventToDay);
 
     function renderMonth(offset) {
       const date = new Date();
+      date.setDate(1); 
       date.setMonth(date.getMonth() + offset);
       const year = date.getFullYear();
       const month = date.getMonth();
@@ -190,6 +268,17 @@
       monthLabel.className = "month-label";
       monthLabel.textContent = `${date.toLocaleString('default', { month: 'long' })} ${year}`;
       calendarContainer.appendChild(monthLabel);
+      
+      const dayLabelsContainer = document.createElement("div");
+      dayLabelsContainer.className = "day-labels";
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayNames.forEach(dayName => {
+          const dayLabel = document.createElement('div');
+          dayLabel.className = 'day-label';
+          dayLabel.textContent = dayName;
+          dayLabelsContainer.appendChild(dayLabel);
+      });
+      calendarContainer.appendChild(dayLabelsContainer);
 
       const grid = document.createElement("div");
       grid.className = "calendar-grid";
@@ -198,96 +287,142 @@
 
       for (let day = 1; day <= daysInMonth; day++) {
         const dateKey = `${year}-${month + 1}-${day}`;
-        const mmdd = `${month + 1}-${day}`;
         const dayEl = document.createElement("div");
         dayEl.classList.add("day");
         dayEl.dataset.date = dateKey;
 
-        const today = new Date();
         const thisDay = new Date(year, month, day);
+        const dayOfWeek = thisDay.getDay(); 
 
-        if (today.toDateString() === thisDay.toDateString()) {
-          dayEl.classList.add("today");
-        } else if (thisDay < new Date(today.setHours(0, 0, 0, 0))) {
-          dayEl.classList.add("past");
-        }
-
+        // General drop handler for the whole day (for non-Saturday drops)
         dayEl.addEventListener("dragover", e => e.preventDefault());
-
         dayEl.addEventListener("drop", async e => {
-          e.preventDefault();
-          const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
-          if (dragged.id) {
-            await deleteDoc(doc(eventsCol, dragged.id));
-            await addDoc(eventsCol, {
-              date: dateKey,
-              text: dragged.text,
-              type: dragged.type
-            });
-            // No need to call loadEventsFromFirestore() anymore
-          }
+            e.preventDefault();
+            const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+            const target = e.target.closest('.day');
+            // Only handle drop if it's not on a Saturday or a drop-zone
+            if (target.dataset.dayofweek !== '6' && !e.target.classList.contains('drop-zone')) {
+                await updateDoc(doc(eventsCol, dragged.id), { date: dateKey, slot: 'unsorted' });
+            }
         });
 
-        if (holidays[mmdd]) {
-          const holidayLabel = document.createElement("div");
-          holidayLabel.classList.add("holiday");
-          holidayLabel.textContent = holidays[mmdd];
-          dayEl.appendChild(holidayLabel);
-        }
+        const today = new Date();
+        if (dayOfWeek === 2 || dayOfWeek === 3) dayEl.classList.add("past");
+        if (today.toDateString() === thisDay.toDateString()) dayEl.classList.add("today");
+        else if (thisDay < new Date(today.setHours(0, 0, 0, 0))) dayEl.classList.add("past");
 
         const dateLabel = document.createElement("span");
         dateLabel.textContent = day;
         dayEl.appendChild(dateLabel);
 
+        if (holidays[`${month + 1}-${day}`]) {
+          const holidayLabel = document.createElement("div");
+          holidayLabel.classList.add("holiday");
+          holidayLabel.textContent = holidays[`${month + 1}-${day}`];
+          dayEl.appendChild(holidayLabel);
+        }
+
+        const unsortedDropZone = document.createElement('div');
+        unsortedDropZone.className = 'drop-zone';
+        unsortedDropZone.dataset.slot = 'unsorted';
+        dayEl.appendChild(unsortedDropZone);
+
+        if (dayOfWeek === 6) { // Saturday
+            dayEl.dataset.dayofweek = '6'; // Mark for specific drop logic
+            const topDropZone = document.createElement('div');
+            topDropZone.className = 'drop-zone';
+            topDropZone.dataset.slot = 'top';
+            dayEl.appendChild(topDropZone);
+
+            const satBlock = document.createElement('div');
+            satBlock.className = 'day-time-block saturday-block';
+            satBlock.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg><span>9-11am</span>`;
+            dayEl.appendChild(satBlock);
+
+            const middleDropZone = document.createElement('div');
+            middleDropZone.className = 'drop-zone';
+            middleDropZone.dataset.slot = 'middle';
+            dayEl.appendChild(middleDropZone);
+            
+            const shortsBlock = document.createElement('div');
+            shortsBlock.className = 'day-time-block shorts-block';
+            shortsBlock.textContent = 'Shorts';
+            dayEl.appendChild(shortsBlock);
+            
+            const bottomDropZone = document.createElement('div');
+            bottomDropZone.className = 'drop-zone';
+            bottomDropZone.dataset.slot = 'bottom';
+            dayEl.appendChild(bottomDropZone);
+
+            // Add listeners to all drop zones on this Saturday
+            dayEl.querySelectorAll('.drop-zone').forEach(zone => {
+                zone.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+                zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+                zone.addEventListener('drop', async e => {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevent dayEl drop from firing
+                    zone.classList.remove('drag-over');
+                    const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+                    await updateDoc(doc(eventsCol, dragged.id), { date: dateKey, slot: zone.dataset.slot });
+                });
+            });
+        }
+
         if (allEvents[dateKey]) {
           allEvents[dateKey].forEach(event => {
-            const eventEl = document.createElement("div");
-            eventEl.className = `event ${event.type}`;
-            eventEl.textContent = event.text;
-            eventEl.draggable = true;
-
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "delete-btn";
-            deleteBtn.textContent = "✖";
-            deleteBtn.onclick = async e => {
-              e.stopPropagation();
-              await deleteDoc(doc(eventsCol, event.id));
-              // No need to call loadEventsFromFirestore() anymore
-            };
-
-            eventEl.appendChild(deleteBtn);
-
-            eventEl.addEventListener("dragstart", e => {
-              e.dataTransfer.setData("text/plain", JSON.stringify(event));
-            });
-
-            dayEl.appendChild(eventEl);
+            const eventEl = createEventElement(event);
+            // Find the correct slot to place the event, default to unsorted
+            const slot = event.slot || 'unsorted';
+            const targetZone = dayEl.querySelector(`.drop-zone[data-slot="${slot}"]`);
+            if (targetZone) {
+                targetZone.appendChild(eventEl);
+            } else {
+                dayEl.appendChild(eventEl); // Fallback
+            }
           });
         }
 
-        dayEl.addEventListener("click", () => {
-          activeDay = dayEl;
-          modal.style.display = "flex";
-          contentText.value = "";
-          contentType.value = "youtube";
+        dayEl.addEventListener("click", (e) => {
+            if (e.target.closest('.event') || e.target.closest('.delete-btn')) return;
+            activeDay = dayEl;
+            modal.style.display = "flex";
+            contentText.value = "";
+            contentType.value = "youtube";
         });
 
         grid.appendChild(dayEl);
       }
-
       calendarContainer.appendChild(grid);
     }
 
-    closeModalBtn.addEventListener("click", () => {
-      modal.style.display = "none";
-    });
+    function createEventElement(event) {
+        const eventEl = document.createElement("div");
+        eventEl.className = `event ${event.type}`;
+        eventEl.textContent = event.text;
+        eventEl.draggable = true;
 
-    window.addEventListener("click", e => {
-      if (e.target === modal) modal.style.display = "none";
-    });
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "✖";
+        deleteBtn.onclick = async e => {
+            e.stopPropagation();
+            await deleteDoc(doc(eventsCol, event.id));
+        };
+        eventEl.appendChild(deleteBtn);
 
+        eventEl.addEventListener("dragstart", e => {
+            e.dataTransfer.setData("text/plain", JSON.stringify(event));
+        });
+        return eventEl;
+    }
+
+    closeModalBtn.addEventListener("click", () => modal.style.display = "none");
+    window.addEventListener("click", e => { if (e.target === modal) modal.style.display = "none"; });
     window.addEventListener("scroll", () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
         renderMonth(++monthOffset);
       }
     });
