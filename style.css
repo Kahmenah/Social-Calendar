@@ -169,3 +169,7 @@
      .today {
       border: 2px solid #2196f3;
     }
+    .day.past {
+      opacity: 0.3;
+      pointer-events: none;
+    }
