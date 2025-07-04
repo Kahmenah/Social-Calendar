@@ -7,7 +7,6 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://kahmenah.github.io/Social-Calendar/style.css" />
-  </style>
 </head>
 <body>
   <button id="topRightLogout">Logout</button>
@@ -45,7 +44,6 @@
     </div>
   </div>
 
-  <!-- Firebase script moved to bottom for DOM access -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
@@ -73,6 +71,7 @@
     let allEvents = {};
     let monthOffset = 0;
     let activeDay = null;
+    let loadedMonths = new Set();
 
     const loginModal = document.getElementById("loginModal");
     const loginForm = document.getElementById("loginForm");
@@ -135,7 +134,8 @@
       });
 
       calendarContainer.innerHTML = "";
-      for (let i = 0; i <= monthOffset; i++) renderMonth(i);
+      loadedMonths.clear();
+      renderMonth(monthOffset);
     }
 
     async function addEventToDay() {
@@ -157,6 +157,11 @@
       date.setMonth(date.getMonth() + offset);
       const year = date.getFullYear();
       const month = date.getMonth();
+      const monthId = `${year}-${month}`;
+
+      if (loadedMonths.has(monthId)) return;
+      loadedMonths.add(monthId);
+
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const firstDay = new Date(year, month, 1).getDay();
 
@@ -182,7 +187,7 @@
 
         if (today.toDateString() === thisDay.toDateString()) {
           dayEl.classList.add("today");
-        } else if (thisDay < today.setHours(0, 0, 0, 0)) {
+        } else if (thisDay < new Date(today.setHours(0, 0, 0, 0))) {
           dayEl.classList.add("past");
         }
 
@@ -262,8 +267,7 @@
 
     window.addEventListener("scroll", () => {
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
-        renderMonth(monthOffset);
-        monthOffset++;
+        renderMonth(++monthOffset);
       }
     });
 
