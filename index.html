@@ -6,8 +6,203 @@
   <title>Simulakra Publishing Calendar</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://kahmenah.github.io/Social-Calendar/style.css" />
-  
+  <style>
+        :root {
+      --bg: #1e1e24;
+      --fg: #f0f0f0;
+      --gray: #2a2a2a;
+      --gray-light: #3b3b3b;
+      --accent: #00bfa6;
+      --youtube: #e53935;
+      --shorts: #fb8c00;
+      --tiktok: #00cec9;
+      --instagram: #d81b60;
+      --highlight: #00bfa6;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0.5rem;
+      overflow-y: scroll;
+      height: 100vh;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 0.5rem;
+    }
+    .logo {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+    }
+    #topRightLogout {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: none;
+      z-index: 1001;
+    }
+    h2.month-label {
+      margin: 2rem 0 1rem;
+      font-size: 1.5rem;
+      text-align: center;
+    }
+    .day-labels {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+      color: var(--highlight);
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 3rem;
+    }
+    .day {
+      padding: 0.7rem;
+      background: var(--gray);
+      border-radius: 8px;
+      min-height: 100px;
+      position: relative;
+    }
+    .event {
+      margin-top: 0.5rem;
+      font-size: 0.7rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #fff;
+      cursor: grab;
+    }
+    .event:hover .delete-btn {
+      display: inline;
+    }
+    .delete-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    .holiday {
+      color: gold;
+      font-size: 0.7rem;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .youtube { background-color: var(--youtube); }
+    .shorts { background-color: var(--shorts); }
+    .tiktok { background-color: var(--tiktok); color: #000; }
+    .instagram { background-color: var(--instagram); color: #fff; }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: #282c34;
+      padding: 2rem;
+      border-radius: 10px;
+      text-align: center;
+      position: relative;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    .close-modal {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 1.5rem;
+      color: #aaa;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+    }
+    .modal-content input,
+    .modal-content select,
+    .modal-content button {
+      margin: 0.5rem 0;
+      padding: 0.6rem;
+      width: 100%;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    .modal-content input,
+    .modal-content select {
+      background: #1e1e24;
+      color: #fff;
+      border: 1px solid #444;
+    }
+    .modal-content button {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+    .modal-content button:hover {
+      background: #00a58d;
+    }
+    .today {
+      border: 2px solid #2196f3;
+    }
+    .day.past {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    #currentUserInfo {
+      position: fixed;
+      top: 10px;
+      right: 80px;
+      font-size: 0.8rem;
+      color: #ccc;
+    }
+    .blackout {
+      background: #111;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
   <button id="topRightLogout">Logout</button>
