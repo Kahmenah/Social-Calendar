@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulakra Publishing Calendar</title>
+  <link rel="icon" href="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" type="image/png">
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://kahmenah.github.io/Social-Calendar/style.css" />
@@ -63,7 +64,6 @@
         min-height: 40px; /* Made zones larger */
         display: flex;
         flex-direction: column;
-        gap: 4px;
         padding: 4px;
         transition: background-color 0.2s ease;
         border-radius: 4px;
@@ -100,7 +100,7 @@
         color: #6b7280;
         text-align: center;
         padding: 1px 0;
-        margin-bottom: 4px;
+        margin-bottom: 2px; /* Reduced space after label */
         pointer-events: none; /* Make sure label doesn't block clicks on the zone */
         display: flex;
         align-items: center;
@@ -113,6 +113,13 @@
         vertical-align: middle;
     }
     
+    /* Container for events within a zone */
+    .events-in-zone {
+        display: flex;
+        flex-direction: column;
+        gap: 4px; /* This space is only between events */
+    }
+
     /* Style for Instagram events */
     .event.instagram {
         background-color: #facc15; /* Yellow */
@@ -357,9 +364,23 @@
         dayContent.className = 'day-content';
         dayEl.appendChild(dayContent);
 
-        const unsortedDropZone = document.createElement('div');
-        unsortedDropZone.className = 'drop-zone';
-        unsortedDropZone.dataset.slot = 'unsorted';
+        const createZone = (slot, className, labelHTML) => {
+            const zone = document.createElement('div');
+            zone.className = `drop-zone ${className}`;
+            zone.dataset.slot = slot;
+
+            if (labelHTML) {
+                const label = document.createElement('div');
+                label.className = 'slot-label';
+                label.innerHTML = labelHTML;
+                zone.appendChild(label);
+            }
+            
+            const eventsContainer = document.createElement('div');
+            eventsContainer.className = 'events-in-zone';
+            zone.appendChild(eventsContainer);
+            return zone;
+        };
 
         switch(dayOfWeek) {
             case 2: // Tuesday
@@ -367,77 +388,39 @@
             case 5: // Friday
                 dayEl.dataset.dayofweek = dayOfWeek;
                 const timeLabels = { 2: '2pm', 4: '9am', 5: '11am' };
-                const weekdayZone = document.createElement('div');
-                weekdayZone.className = 'drop-zone weekday-slot';
-                weekdayZone.dataset.slot = 'top';
-                const weekdayLabel = document.createElement('div');
-                weekdayLabel.className = 'slot-label';
-                weekdayLabel.innerHTML = `
+                const weekdayLabelHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="#6b7280"><path d="M448 209.9a210.1 210.1 0 0 1 -122.8-39.3V349.4a162.6 162.6 0 1 1 -185-188.3v89.9a74.6 74.6 0 1 0 52.2 71.2V0h88a121.2 121.2 0 0 0 1.9 22.2h0A122.2 122.2 0 0 0 381 102.4a121.4 121.4 0 0 0 67 20.1z"/></svg>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#6b7280"><path d="M6.5 5.25a1.25 1.25 0 0 0-1.25 1.25v11a1.25 1.25 0 0 0 1.25 1.25h11a1.25 1.25 0 0 0 1.25-1.25v-11a1.25 1.25 0 0 0-1.25-1.25h-11zM15 12l-5.5 3.18V8.82L15 12z"/></svg>
-                    <span>${timeLabels[dayOfWeek]}</span>
-                `;
-                weekdayZone.appendChild(weekdayLabel);
-                dayContent.appendChild(weekdayZone);
-                dayContent.appendChild(unsortedDropZone);
+                    <span>${timeLabels[dayOfWeek]}</span>`;
+                dayContent.appendChild(createZone('top', 'weekday-slot', weekdayLabelHTML));
+                dayContent.appendChild(createZone('unsorted', '', ''));
                 break;
             case 3: // Wednesday
                 dayEl.dataset.dayofweek = dayOfWeek;
-                const instagramZone = document.createElement('div');
-                instagramZone.className = 'drop-zone instagram-slot';
-                instagramZone.dataset.slot = 'instagram';
-                const instagramLabel = document.createElement('div');
-                instagramLabel.className = 'slot-label';
-                instagramLabel.innerHTML = `
+                const instagramLabelHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="#ca8a04"><path d="M224 202.1c30.9 0 56 25.1 56 56s-25.1 56-56 56-56-25.1-56-56 25.1-56 56-56m0-46c-56.3 0-102 45.7-102 102s45.7 102 102 102 102-45.7 102-102-45.7-102-102-102zm148-28.2c0-14.8-12-26.8-26.8-26.8-14.9 0-26.8 12-26.8 26.8s12 26.8 26.8 26.8 26.8-12 26.8-26.8zm41.2 28.2c-1.7-38.2-9.9-72.4-36.2-98.8-26.3-26.3-60.6-34.5-98.8-36.2-39.6-2.2-158.4-2.2-198 0-38.2 1.7-72.4 9.9-98.8 36.2C1.7 121.6 0 155.8 0 194s1.7 72.4 34.5 98.8c26.3 26.3 60.6 34.5 98.8 36.2 39.6 2.2 158.4 2.2 198 0 38.2-1.7 72.4-9.9 98.8-36.2 26.3-26.3 34.5-60.6 34.5-98.8s-1.7-72.4-34.5-98.8zm-46.1 196.7c-21.5 21.5-49.9 31.4-85.3 33.2-36.7 1.8-146.9 1.8-183.6 0-35.4-1.7-63.8-11.6-85.3-33.2-21.5-21.5-31.4-49.9-33.2-85.3-1.8-36.7-1.8-146.9 0-183.6 1.7-35.4 11.6-63.8 33.2-85.3 21.5-21.5 49.9-31.4 85.3-33.2 36.7-1.8 146.9-1.8 183.6 0 35.4 1.7 63.8 11.6 85.3 33.2 21.5 21.5 31.4 49.9 33.2 85.3 1.8 36.7 1.8 146.9 0 183.6-1.7 35.4-11.6 63.8-33.2 85.3z"/></svg>
-                    <span>11am</span>
-                `;
-                instagramZone.appendChild(instagramLabel);
-
-                const wednesdayZone = document.createElement('div');
-                wednesdayZone.className = 'drop-zone weekday-slot';
-                wednesdayZone.dataset.slot = 'top';
-                const wednesdayLabel = document.createElement('div');
-                wednesdayLabel.className = 'slot-label';
-                wednesdayLabel.innerHTML = `
+                    <span>11am</span>`;
+                const wednesdayLabelHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="#6b7280"><path d="M448 209.9a210.1 210.1 0 0 1 -122.8-39.3V349.4a162.6 162.6 0 1 1 -185-188.3v89.9a74.6 74.6 0 1 0 52.2 71.2V0h88a121.2 121.2 0 0 0 1.9 22.2h0A122.2 122.2 0 0 0 381 102.4a121.4 121.4 0 0 0 67 20.1z"/></svg>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#6b7280"><path d="M6.5 5.25a1.25 1.25 0 0 0-1.25 1.25v11a1.25 1.25 0 0 0 1.25 1.25h11a1.25 1.25 0 0 0 1.25-1.25v-11a1.25 1.25 0 0 0-1.25-1.25h-11zM15 12l-5.5 3.18V8.82L15 12z"/></svg>
-                    <span>1pm</span>
-                `;
-                wednesdayZone.appendChild(wednesdayLabel);
-                
-                dayContent.appendChild(instagramZone);
-                dayContent.appendChild(wednesdayZone);
-                dayContent.appendChild(unsortedDropZone);
+                    <span>1pm</span>`;
+                dayContent.appendChild(createZone('instagram', 'instagram-slot', instagramLabelHTML));
+                dayContent.appendChild(createZone('top', 'weekday-slot', wednesdayLabelHTML));
+                dayContent.appendChild(createZone('unsorted', '', ''));
                 break;
             case 6: // Saturday
                 dayEl.dataset.dayofweek = '6';
-                const topDropZone = document.createElement('div');
-                topDropZone.className = 'drop-zone youtube-slot';
-                topDropZone.dataset.slot = 'top';
-                const topLabel = document.createElement('div');
-                topLabel.className = 'slot-label';
-                topLabel.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#c4302b"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg><span>9am</span>`;
-                topDropZone.appendChild(topLabel);
-                
-                const middleDropZone = document.createElement('div');
-                middleDropZone.className = 'drop-zone shorts-slot';
-                middleDropZone.dataset.slot = 'middle';
-                const middleLabel = document.createElement('div');
-                middleLabel.className = 'slot-label';
-                middleLabel.innerHTML = `
+                const youtubeLabelHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#c4302b"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg><span>9am</span>`;
+                const shortsLabelHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="#6b7280"><path d="M448 209.9a210.1 210.1 0 0 1 -122.8-39.3V349.4a162.6 162.6 0 1 1 -185-188.3v89.9a74.6 74.6 0 1 0 52.2 71.2V0h88a121.2 121.2 0 0 0 1.9 22.2h0A122.2 122.2 0 0 0 381 102.4a121.4 121.4 0 0 0 67 20.1z"/></svg>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#6b7280"><path d="M6.5 5.25a1.25 1.25 0 0 0-1.25 1.25v11a1.25 1.25 0 0 0 1.25 1.25h11a1.25 1.25 0 0 0 1.25-1.25v-11a1.25 1.25 0 0 0-1.25-1.25h-11zM15 12l-5.5 3.18V8.82L15 12z"/></svg>
-                    <span>10am</span>
-                `;
-                middleDropZone.appendChild(middleLabel);
-
-                dayContent.appendChild(topDropZone);
-                dayContent.appendChild(middleDropZone);
-                dayContent.appendChild(unsortedDropZone);
+                    <span>10am</span>`;
+                dayContent.appendChild(createZone('top', 'youtube-slot', youtubeLabelHTML));
+                dayContent.appendChild(createZone('middle', 'shorts-slot', shortsLabelHTML));
+                dayContent.appendChild(createZone('unsorted', '', ''));
                 break;
             default: // Sunday, Monday
-                dayContent.appendChild(unsortedDropZone);
+                dayContent.appendChild(createZone('unsorted', '', ''));
         }
 
         dayEl.querySelectorAll('.drop-zone').forEach(zone => {
@@ -461,11 +444,11 @@
           allEvents[dateKey].forEach(event => {
             const eventEl = createEventElement(event);
             const slot = event.slot || 'unsorted';
-            const targetZone = dayEl.querySelector(`.drop-zone[data-slot="${slot}"]`);
+            const targetZone = dayEl.querySelector(`.drop-zone[data-slot="${slot}"] .events-in-zone`);
             if (targetZone) {
                 targetZone.appendChild(eventEl);
             } else {
-                dayContent.appendChild(eventEl); // Fallback
+                dayContent.querySelector('.drop-zone[data-slot="unsorted"] .events-in-zone').appendChild(eventEl); // Fallback
             }
           });
         }
