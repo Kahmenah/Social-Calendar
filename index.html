@@ -7,7 +7,6 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://kahmenah.github.io/Social-Calendar/style.css" />
-
 </head>
 <body>
   <button id="topRightLogout">Logout</button>
@@ -46,7 +45,7 @@
   </div>
 
   <!-- Firebase script moved to bottom for DOM access -->
-    <script type="module">
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
       getFirestore, collection, getDocs, addDoc, deleteDoc,
@@ -177,7 +176,15 @@
         dayEl.classList.add("day");
         dayEl.dataset.date = dateKey;
 
-        // Always allow drop
+        const today = new Date();
+        const isToday =
+          today.getFullYear() === year &&
+          today.getMonth() === month &&
+          today.getDate() === day;
+        if (isToday) {
+          dayEl.classList.add("today");
+        }
+
         dayEl.addEventListener("dragover", e => e.preventDefault());
 
         dayEl.addEventListener("drop", async e => {
