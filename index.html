@@ -7,7 +7,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <style>
-        :root {
+    :root {
       --bg: #1e1e24;
       --fg: #f0f0f0;
       --gray: #2a2a2a;
@@ -66,6 +66,13 @@
       display: none;
       z-index: 1001;
     }
+    #currentUserInfo {
+      position: fixed;
+      top: 10px;
+      right: 120px;
+      font-size: 0.8rem;
+      color: #ccc;
+    }
     h2.month-label {
       margin: 2rem 0 1rem;
       font-size: 1.5rem;
@@ -78,6 +85,10 @@
       margin-bottom: 0.5rem;
       font-weight: bold;
       color: var(--highlight);
+    }
+    .day-labels div {
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid var(--gray-light);
     }
     .calendar-grid {
       display: grid;
@@ -124,7 +135,6 @@
     .shorts { background-color: var(--shorts); }
     .tiktok { background-color: var(--tiktok); color: #000; }
     .instagram { background-color: var(--instagram); color: #fff; }
-
     .modal {
       position: fixed;
       top: 0;
@@ -184,18 +194,11 @@
       background: #00a58d;
     }
     .today {
-      border: 2px solid #2196f2;
+      border: 2px solid #2196f3;
     }
     .day.past {
       opacity: 0.3;
       pointer-events: none;
-    }
-    #currentUserInfo {
-      position: fixed;
-      top: 10px;
-      right: 80px;
-      font-size: 0.8rem;
-      color: #ccc;
     }
     .blackout {
       background: #111;
@@ -206,25 +209,12 @@
 </head>
 <body>
   <button id="topRightLogout">Logout</button>
-  <div id="loginModal" class="modal" style="display:none;">
-    <div class="modal-content">
-      <h2>Login to Simulakra Calendar</h2>
-      <form id="loginForm">
-        <input type="email" name="email" placeholder="Email" required />
-        <input type="password" name="password" placeholder="Password" required />
-        <button type="submit">Login / Register</button>
-        <div id="loginError" style="color:red;margin-top:0.5rem;"></div>
-      </form>
-    </div>
-  </div>
-
   <div id="currentUserInfo"></div>
   <img src="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" alt="Simulakra Logo" class="logo" />
   <div class="container">
     <h1>Simulakra Publishing Calendar</h1>
     <div id="calendarContainer"></div>
   </div>
-
   <div class="modal" id="modal">
     <div class="modal-content">
       <div class="close-modal" id="closeModalBtn">&times;</div>
@@ -478,5 +468,6 @@
       "11-28": "Thanksgiving", "12-25": "Christmas"
     };
   </script>
+  
 </body>
 </html>
