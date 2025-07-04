@@ -7,6 +7,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://kahmenah.github.io/Social-Calendar/style.css" />
+  </style>
 </head>
 <body>
   <button id="topRightLogout">Logout</button>
@@ -177,12 +178,12 @@
         dayEl.dataset.date = dateKey;
 
         const today = new Date();
-        const isToday =
-          today.getFullYear() === year &&
-          today.getMonth() === month &&
-          today.getDate() === day;
-        if (isToday) {
+        const thisDay = new Date(year, month, day);
+
+        if (today.toDateString() === thisDay.toDateString()) {
           dayEl.classList.add("today");
+        } else if (thisDay < today.setHours(0, 0, 0, 0)) {
+          dayEl.classList.add("past");
         }
 
         dayEl.addEventListener("dragover", e => e.preventDefault());
