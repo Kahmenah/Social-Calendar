@@ -4,518 +4,291 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulakra Publishing Calendar</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
-  <style>
-    /* Using a combination of custom properties and Tailwind for styling */
-    :root {
-      --bg: #1a202c; /* Tailwind gray-900 */
-      --fg: #f7fafc; /* Tailwind gray-100 */
-      --gray: #2d3748; /* Tailwind gray-800 */
-      --gray-light: #4a5568; /* Tailwind gray-600 */
-      --accent: #2dd4bf; /* Tailwind teal-400 */
-      --youtube: #e53935;
-      --shorts: #fb8c00;
-      --tiktok: #00cec9;
-      --instagram: #d81b60;
-      --highlight: #2dd4bf; /* Tailwind teal-400 */
-    }
-    body {
-      background-color: var(--bg);
-      color: var(--fg);
-      font-family: 'Inter', sans-serif;
-    }
-    h1 {
-      font-family: 'Playfair Display', serif;
-    }
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 0.5rem;
-    }
-    .day {
-      background-color: var(--gray);
-      border-radius: 0.5rem;
-      padding: 0.7rem;
-      min-height: 120px;
-      position: relative;
-      transition: background-color 0.2s ease-in-out;
-    }
-    .day:not(.past):not(.blackout):hover {
-        background-color: var(--gray-light);
-    }
-    .day-label {
-        color: var(--highlight);
-        text-align: center;
-        font-weight: 600;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid var(--gray-light);
-    }
-    .event {
-      margin-top: 0.5rem;
-      font-size: 0.75rem;
-      padding: 4px 8px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: #fff;
-      cursor: grab;
-      word-break: break-word;
-    }
-    .event:active {
-        cursor: grabbing;
-    }
-    .event .delete-btn {
-      display: none;
-      background: none;
-      border: none;
-      color: white;
-      cursor: pointer;
-      padding-left: 8px;
-    }
-    .event:hover .delete-btn {
-      display: inline;
-    }
-    .holiday {
-      color: gold;
-      font-size: 0.7rem;
-      font-weight: bold;
-      display: block;
-      margin-bottom: 4px;
-    }
-    .youtube { background-color: var(--youtube); }
-    .shorts { background-color: var(--shorts); }
-    .tiktok { background-color: var(--tiktok); color: #000; }
-    .instagram { background-color: var(--instagram); }
-    .today {
-      border: 2px solid var(--accent);
-      box-shadow: 0 0 10px rgba(45, 212, 191, 0.5);
-    }
-    .past {
-      opacity: 0.4;
-      pointer-events: none;
-    }
-    .blackout {
-      background: #111;
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .modal {
-      z-index: 9999;
-    }
-  </style>
+  <link rel="stylesheet" href="https://kahmenah.github.io/Social-Calendar/style.css" />
 </head>
-<body class="antialiased">
-
-  <!-- Header and User Info -->
-  <header class="fixed top-0 left-0 right-0 bg-gray-900 bg-opacity-80 backdrop-blur-sm p-4 flex justify-between items-center z-50">
-    <div class="flex items-center space-x-4">
-        <img src="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" alt="Simulakra Logo" class="w-12 h-12 rounded-full shadow-lg"/>
-        <h1 class="text-2xl md:text-3xl font-bold text-white">Simulakra Publishing Calendar</h1>
+<body>
+  <button id="topRightLogout">Logout</button>
+  <div id="loginModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h2>Login to Simulakra Calendar</h2>
+      <form id="loginForm">
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <button type="button" id="loginBtn">Login</button>
+        <button type="button" id="registerBtn">Register</button>
+        <div id="loginError" style="color:red;margin-top:0.5rem;"></div>
+      </form>
     </div>
-    <div class="text-right">
-        <div id="currentUserInfo" class="text-xs text-gray-400 mb-1">Connecting...</div>
-        <button id="logoutButton" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Logout</button>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="container mx-auto px-4 pt-32">
-    <div id="calendarContainer">
-        <!-- Calendar will be rendered here by JavaScript -->
-    </div>
-    <div id="loadingIndicator" class="text-center py-8 hidden">
-        <p class="text-lg text-gray-400">Loading calendar...</p>
-    </div>
-  </main>
-
-  <!-- Login Modal -->
-  <div id="loginModal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
-      <div class="modal-content bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-sm mx-4">
-          <h3 class="text-2xl font-bold mb-6 text-center">Login or Sign Up</h3>
-          <form id="loginForm">
-              <input type="email" id="email" placeholder="Email Address" required class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg mb-4 text-white focus:outline-none focus:ring-2 focus:ring-accent" />
-              <input type="password" id="password" placeholder="Password" required class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg mb-4 text-white focus:outline-none focus:ring-2 focus:ring-accent" />
-              <button type="submit" class="w-full bg-accent hover:bg-teal-500 text-white font-bold py-3 px-4 rounded-lg transition-colors">Continue</button>
-              <p id="loginError" class="text-red-500 text-sm mt-4 text-center h-4"></p>
-          </form>
-      </div>
   </div>
 
-  <!-- Add/Edit Event Modal -->
-  <div id="eventModal" class="modal fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center">
-    <div class="modal-content bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md mx-4 relative">
-      <button id="closeModalBtn" class="absolute top-3 right-4 text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
-      <h3 class="text-xl font-bold mb-4">Add Content</h3>
-      <select id="contentType" class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg mb-3 text-white focus:outline-none focus:ring-2 focus:ring-accent">
+  <div id="currentUserInfo" style="text-align:center;margin:1rem 0;"></div>
+  <img src="https://yt3.googleusercontent.com/EN1UNow6YvEzHvyFxHT8wDjXWca-9hf8ubgvK9PBJMr5lYrCPUIt9-A3D6_kglN5yLCPlxXn=s160-c-k-c0x00ffffff-no-rj" alt="Simulakra Logo" class="logo" />
+  <div class="container">
+    <h1>Simulakra Publishing Calendar</h1>
+    <div id="calendarContainer"></div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="close-modal" id="closeModalBtn">×</div>
+      <h3>Add Content</h3>
+      <select id="contentType">
         <option value="youtube">YouTube Video</option>
         <option value="shorts">YouTube Shorts</option>
         <option value="tiktok">TikTok</option>
         <option value="instagram">Instagram Image</option>
       </select>
-      <input type="text" id="contentText" placeholder="Enter content label..." class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg mb-4 text-white focus:outline-none focus:ring-2 focus:ring-accent" />
-      <button id="addEventBtn" class="w-full bg-accent hover:bg-teal-500 text-white font-bold py-3 px-4 rounded-lg transition-colors">Add Content</button>
+      <input type="text" id="contentText" placeholder="Enter content label..." />
+      <button id="addEventBtn">Add</button>
     </div>
   </div>
 
   <script type="module">
-    // Firebase Imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, doc, onSnapshot, addDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, addDoc, deleteDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import {
+      getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-    // --- CONFIGURATION & GLOBAL VARIABLES ---
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = {
+      apiKey: "AIzaSyBI7ak0UMM6oynVLitop9HPzps6WCpsGF0",
+      authDomain: "simulakra-calendar.firebaseapp.com",
+      projectId: "simulakra-calendar",
+      storageBucket: "simulakra-calendar.appspot.com",
+      messagingSenderId: "1032110905740",
+      appId: "1:1032110905740:web:d4b6a66336d07ecfebdea9"
+    };
 
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth();
+    let userId = null;
+    let eventsCol;
+    let allEvents = {};
+    let monthOffset = 0;
+    let activeDay = null;
+    let loadedMonths = new Set();
+    
+    // Recommendation 3: Moved holidays object to be defined before use
     const holidays = {
-      "1-1": "New Year's Day", "1-15": "MLK Jr. Day", "2-19": "Presidents' Day",
+      "1-1": "New Year's Day", "1-15": "Martin Luther King Jr. Day", "2-19": "Presidents' Day",
       "5-27": "Memorial Day", "6-19": "Juneteenth", "7-4": "Independence Day",
       "9-2": "Labor Day", "10-14": "Columbus Day", "11-11": "Veterans Day",
       "11-28": "Thanksgiving", "12-25": "Christmas"
     };
 
-    let db, auth, userId, eventsCollection;
-    let allEvents = {};
-    let monthOffset = 0;
-    let activeDayElement = null;
-    let loadedMonths = new Set();
-    let unsubscribeFromEvents = null;
-
-    // --- DOM ELEMENT REFERENCES ---
+    const loginModal = document.getElementById("loginModal");
+    const loginForm = document.getElementById("loginForm");
+    const loginError = document.getElementById("loginError");
     const currentUserInfo = document.getElementById("currentUserInfo");
-    const logoutButton = document.getElementById("logoutButton");
+    const topRightLogout = document.getElementById("topRightLogout");
     const calendarContainer = document.getElementById("calendarContainer");
-    const loadingIndicator = document.getElementById("loadingIndicator");
-    const eventModal = document.getElementById("eventModal");
+    const modal = document.getElementById("modal");
     const closeModalBtn = document.getElementById("closeModalBtn");
     const contentType = document.getElementById("contentType");
     const contentText = document.getElementById("contentText");
     const addEventBtn = document.getElementById("addEventBtn");
-    const loginModal = document.getElementById("loginModal");
-    const loginForm = document.getElementById("loginForm");
-    const loginError = document.getElementById("loginError");
 
-    // --- INITIALIZATION & AUTHENTICATION ---
+    // Recommendation 2: Event listener for the new Login button
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const email = loginForm.email.value;
+      const password = loginForm.password.value;
+      loginError.textContent = "";
 
-    function initializeAppAndAuth() {
       try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
-
-        onAuthStateChanged(auth, user => {
-          if (user) {
-            // User is signed in.
-            userId = user.uid;
-            console.log("Authenticated User ID:", userId);
-            currentUserInfo.textContent = `Logged in as: ${user.email}`;
-            logoutButton.style.display = "block";
-            loginModal.style.display = "none";
-            
-            eventsCollection = collection(db, `artifacts/${appId}/users/${userId}/calendarEvents`);
-            
-            loadingIndicator.style.display = 'block';
-            loadAndListenForEvents();
-          } else {
-            // User is signed out.
-            console.log("User is signed out.");
-            userId = null;
-            currentUserInfo.textContent = "Not logged in.";
-            logoutButton.style.display = "none";
-            loginModal.style.display = "flex";
-            calendarContainer.innerHTML = '';
-            loadingIndicator.style.display = 'none';
-            loadedMonths.clear();
-            if (unsubscribeFromEvents) {
-                unsubscribeFromEvents();
-            }
-          }
-        });
+        await signInWithEmailAndPassword(auth, email, password);
       } catch (error) {
-        console.error("Firebase Initialization Error:", error);
-        calendarContainer.innerHTML = `<p class="text-center text-red-500">Error connecting to services: ${error.message}</p>`;
+        loginError.textContent = "Login failed. Please check your email and password.";
       }
-    }
-
-    loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = loginForm.email.value;
-        const password = loginForm.password.value;
-        loginError.textContent = ""; // Clear previous errors
-
-        try {
-            // First, try to sign in the user
-            await signInWithEmailAndPassword(auth, email, password);
-            // If successful, onAuthStateChanged will handle the rest
-        } catch (signInError) {
-            // If sign-in fails, check the reason
-            if (signInError.code === 'auth/user-not-found') {
-                // If the user doesn't exist, try to create a new account
-                try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    // If successful, onAuthStateChanged will handle the rest
-                } catch (createError) {
-                    // Handle errors during account creation (e.g., weak password)
-                    console.error("Account creation failed:", createError);
-                    loginError.textContent = createError.message;
-                }
-            } else if (signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/wrong-password') {
-                // Handle incorrect password or other invalid credential issues
-                 console.error("Sign-in failed:", signInError);
-                 loginError.textContent = "Invalid email or password. Please try again.";
-            } 
-            else {
-                // Handle other sign-in errors (e.g., network issue)
-                console.error("Sign-in failed:", signInError);
-                loginError.textContent = signInError.message;
-            }
-        }
     });
 
-    // --- DATA HANDLING (FIRESTORE) ---
+    // Recommendation 2: Event listener for the new Register button
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+      const email = loginForm.email.value;
+      const password = loginForm.password.value;
+      loginError.textContent = "";
 
-    function loadAndListenForEvents() {
-        if (!eventsCollection) return;
-        if (unsubscribeFromEvents) unsubscribeFromEvents();
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        loginError.textContent = "Registration failed. This email may already be in use.";
+      }
+    });
+    
+    // Recommendation 4: Attach the logout listener once, outside of onAuthStateChanged
+    topRightLogout.addEventListener("click", async () => {
+      await signOut(auth);
+      location.reload();
+    });
 
-        unsubscribeFromEvents = onSnapshot(eventsCollection, (snapshot) => {
-            allEvents = {};
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                if (!allEvents[data.date]) allEvents[data.date] = [];
-                allEvents[data.date].push({ ...data, id: docSnap.id });
-            });
-            
-            const isFirstLoad = calendarContainer.innerHTML === "" || loadingIndicator.style.display !== 'none';
-            if (isFirstLoad) {
-                 calendarContainer.innerHTML = "";
-                 loadedMonths.clear();
-                 monthOffset = 0;
-                 renderMonth(0);
-                 renderMonth(1);
-                 loadingIndicator.style.display = 'none';
-            } else {
-                refreshAllRenderedMonths();
-            }
-        }, error => {
-            console.error("Error listening to Firestore:", error);
-            calendarContainer.innerHTML = `<p class="text-center text-red-500">Error fetching calendar data.</p>`;
-            loadingIndicator.style.display = 'none';
-        });
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        userId = user.uid;
+        eventsCol = collection(db, `users/${userId}/calendarEvents`);
+        loginModal.style.display = "none";
+        currentUserInfo.innerHTML = `Logged in as: ${user.email}`;
+        topRightLogout.style.display = "block";
+        loadEventsFromFirestore();
+      } else {
+        loginModal.style.display = "flex";
+        currentUserInfo.textContent = "";
+        topRightLogout.style.display = "none";
+      }
+    });
+
+    async function loadEventsFromFirestore() {
+      if (!eventsCol) return;
+      const snapshot = await getDocs(eventsCol);
+      allEvents = {};
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (!allEvents[data.date]) allEvents[data.date] = [];
+        allEvents[data.date].push({ ...data, id: docSnap.id });
+      });
+
+      calendarContainer.innerHTML = "";
+      loadedMonths.clear();
+      renderMonth(monthOffset);
     }
 
     async function addEventToDay() {
-      if (!eventsCollection || !activeDayElement) return;
+      if (!eventsCol) return;
+      const type = contentType.value;
       const text = contentText.value.trim();
-      if (!text) {
-        // Replace alert with a more user-friendly notification if possible
-        const originalBorder = contentText.style.border;
-        contentText.style.border = "2px solid red";
-        setTimeout(() => { contentText.style.border = originalBorder; }, 2000);
-        return;
-      }
-      try {
-        await addDoc(eventsCollection, {
-            date: activeDayElement.dataset.date,
-            type: contentType.value,
-            text: text,
-        });
-        closeModal();
-      } catch (error) {
-        console.error("Error adding event:", error);
-      }
+      if (!text || !type || !activeDay) return;
+
+      const dateKey = activeDay.dataset.date;
+      await addDoc(eventsCol, { date: dateKey, type, text });
+      modal.style.display = "none";
+      await loadEventsFromFirestore();
     }
 
-    async function deleteEvent(eventId, e) {
-        e.stopPropagation();
-        if (!eventsCollection || !eventId) return;
-        // Replace confirm with a custom modal for better UX in a real app
-        // For this example, confirm is kept for simplicity.
-        if (window.confirm("Are you sure you want to delete this event?")) {
-            try {
-                await deleteDoc(doc(eventsCollection, eventId));
-            } catch (error) {
-                console.error("Error deleting event:", error);
-            }
-        }
-    }
+    addEventBtn.addEventListener("click", addEventToDay);
 
-    async function moveEvent(eventId, newDate) {
-        if (!eventsCollection || !eventId || !newDate) return;
-        try {
-            await updateDoc(doc(eventsCollection, eventId), { date: newDate });
-        } catch (error) {
-            console.error("Error moving event:", error);
-        }
-    }
-
-    // --- UI RENDERING ---
-
-    function refreshAllRenderedMonths() {
-        const currentScroll = window.scrollY;
-        calendarContainer.innerHTML = "";
-        const monthsToRender = Array.from(loadedMonths);
-        loadedMonths.clear();
-        
-        monthsToRender.forEach(monthId => {
-            const [year, month] = monthId.split('-').map(Number);
-            const today = new Date();
-            const offset = (year - today.getFullYear()) * 12 + (month - today.getMonth());
-            renderMonth(offset, false);
-        });
-        window.scrollTo(0, currentScroll);
-    }
-
-    function renderMonth(offset, addToLoaded = true) {
+    function renderMonth(offset) {
       const date = new Date();
-      date.setDate(1);
       date.setMonth(date.getMonth() + offset);
       const year = date.getFullYear();
       const month = date.getMonth();
       const monthId = `${year}-${month}`;
 
       if (loadedMonths.has(monthId)) return;
-      if(addToLoaded) loadedMonths.add(monthId);
+      loadedMonths.add(monthId);
 
-      const monthContainer = document.createElement('div');
-      monthContainer.id = `month-${monthId}`;
-      monthContainer.className = 'mb-12';
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const firstDay = new Date(year, month, 1).getDay();
 
       const monthLabel = document.createElement("h2");
-      monthLabel.className = "text-2xl font-bold text-center my-6";
+      monthLabel.className = "month-label";
       monthLabel.textContent = `${date.toLocaleString('default', { month: 'long' })} ${year}`;
-      monthContainer.appendChild(monthLabel);
-
-      const dayLabelsGrid = document.createElement('div');
-      dayLabelsGrid.className = 'grid grid-cols-7 gap-2 mb-2 text-sm';
-      ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
-          const labelEl = document.createElement('div');
-          labelEl.className = 'day-label';
-          labelEl.textContent = day;
-          dayLabelsGrid.appendChild(labelEl);
-      });
-      monthContainer.appendChild(dayLabelsGrid);
+      calendarContainer.appendChild(monthLabel);
 
       const grid = document.createElement("div");
       grid.className = "calendar-grid";
 
-      const firstDayOfMonth = new Date(year, month, 1).getDay();
-      for (let i = 0; i < firstDayOfMonth; i++) {
-        const emptyCell = document.createElement("div");
-        grid.appendChild(emptyCell);
-      }
-
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
+      for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement("div"));
 
       for (let day = 1; day <= daysInMonth; day++) {
-        grid.appendChild(createDayElement(year, month, day, startOfToday));
-      }
-
-      monthContainer.appendChild(grid);
-      calendarContainer.appendChild(monthContainer);
-    }
-
-    function createDayElement(year, month, day, startOfToday) {
         const dateKey = `${year}-${month + 1}-${day}`;
-        const thisDate = new Date(year, month, day);
+        const mmdd = `${month + 1}-${day}`;
         const dayEl = document.createElement("div");
-        dayEl.className = "day";
+        dayEl.classList.add("day");
         dayEl.dataset.date = dateKey;
 
-        if (thisDate.toDateString() === new Date().toDateString()) dayEl.classList.add("today");
-        else if (thisDate < startOfToday) dayEl.classList.add("past");
-        if ([2, 3].includes(thisDate.getDay())) dayEl.classList.add("blackout");
+        const today = new Date();
+        const thisDay = new Date(year, month, day);
+
+        if (today.toDateString() === thisDay.toDateString()) {
+          dayEl.classList.add("today");
+        } else if (thisDay < new Date(today.setHours(0, 0, 0, 0))) {
+          dayEl.classList.add("past");
+        }
+
+        dayEl.addEventListener("dragover", e => e.preventDefault());
+
+        dayEl.addEventListener("drop", async e => {
+          e.preventDefault();
+          const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+          if (dragged.id) {
+            await deleteDoc(doc(eventsCol, dragged.id));
+            await addDoc(eventsCol, {
+              date: dateKey,
+              text: dragged.text,
+              type: dragged.type
+            });
+            loadEventsFromFirestore();
+          }
+        });
+
+        if (holidays[mmdd]) {
+          const holidayLabel = document.createElement("div");
+          holidayLabel.classList.add("holiday");
+          holidayLabel.textContent = holidays[mmdd];
+          dayEl.appendChild(holidayLabel);
+        }
 
         const dateLabel = document.createElement("span");
         dateLabel.textContent = day;
-        dateLabel.className = 'font-bold text-sm';
         dayEl.appendChild(dateLabel);
 
-        const mmdd = `${month + 1}-${day}`;
-        if (holidays[mmdd]) {
-            const holidayLabel = document.createElement("div");
-            holidayLabel.className = "holiday";
-            holidayLabel.textContent = holidays[mmdd];
-            dayEl.appendChild(holidayLabel);
-        }
-
         if (allEvents[dateKey]) {
-            allEvents[dateKey].forEach(eventData => dayEl.appendChild(createEventElement(eventData)));
+          allEvents[dateKey].forEach(event => {
+            const eventEl = document.createElement("div");
+            eventEl.className = `event ${event.type}`;
+            eventEl.textContent = event.text;
+            eventEl.draggable = true;
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-btn";
+            deleteBtn.textContent = "✖";
+            deleteBtn.onclick = async e => {
+              e.stopPropagation();
+              await deleteDoc(doc(eventsCol, event.id));
+              loadEventsFromFirestore();
+            };
+
+            eventEl.appendChild(deleteBtn);
+
+            eventEl.addEventListener("dragstart", e => {
+              e.dataTransfer.setData("text/plain", JSON.stringify(event));
+            });
+
+            dayEl.appendChild(eventEl);
+          });
         }
-        
-        if (!dayEl.classList.contains('past') && !dayEl.classList.contains('blackout')) {
-            dayEl.addEventListener("click", () => openModal(dayEl));
-            dayEl.addEventListener("dragover", e => e.preventDefault());
-            dayEl.addEventListener("drop", e => handleDrop(e, dayEl));
-        }
-        return dayEl;
-    }
 
-    function createEventElement(eventData) {
-        const eventEl = document.createElement("div");
-        eventEl.className = `event ${eventData.type}`;
-        eventEl.draggable = true;
-        
-        const textSpan = document.createElement('span');
-        textSpan.textContent = eventData.text;
-        eventEl.appendChild(textSpan);
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "delete-btn";
-        deleteBtn.innerHTML = "&times;";
-        deleteBtn.onclick = (e) => deleteEvent(eventData.id, e);
-        eventEl.appendChild(deleteBtn);
-
-        eventEl.addEventListener("dragstart", e => {
-            e.dataTransfer.setData("text/plain", JSON.stringify(eventData));
-            e.stopPropagation();
+        dayEl.addEventListener("click", () => {
+          activeDay = dayEl;
+          modal.style.display = "flex";
+          contentText.value = "";
+          contentType.value = "youtube";
         });
-        return eventEl;
+
+        grid.appendChild(dayEl);
+      }
+
+      calendarContainer.appendChild(grid);
     }
 
-    // --- EVENT HANDLERS & MODAL ---
-
-    function handleDrop(e, dayEl) {
-        e.preventDefault();
-        const eventData = JSON.parse(e.dataTransfer.getData("text/plain"));
-        const newDate = dayEl.dataset.date;
-        if (eventData.id && eventData.date !== newDate) {
-            moveEvent(eventData.id, newDate);
-        }
-    }
-    
-    function openModal(dayElement) {
-        activeDayElement = dayElement;
-        eventModal.style.display = "flex";
-        contentText.value = "";
-        contentType.value = "youtube";
-        contentText.focus();
-    }
-
-    function closeModal() {
-        eventModal.style.display = "none";
-        activeDayElement = null;
-    }
-
-    logoutButton.addEventListener("click", () => signOut(auth));
-    addEventBtn.addEventListener("click", addEventToDay);
-    closeModalBtn.addEventListener("click", closeModal);
-    window.addEventListener("click", e => { if (e.target === eventModal) closeModal(); });
-    window.addEventListener('keydown', e => { if (e.key === 'Escape' && eventModal.style.display === 'flex') closeModal(); });
-
-    window.addEventListener("scroll", () => {
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
-            renderMonth(++monthOffset);
-        }
+    closeModalBtn.addEventListener("click", () => {
+      modal.style.display = "none";
     });
 
-    // --- START THE APP ---
-    initializeAppAndAuth();
+    window.addEventListener("click", e => {
+      if (e.target === modal) modal.style.display = "none";
+    });
 
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+        renderMonth(++monthOffset);
+      }
+    });
   </script>
 </body>
 </html>
