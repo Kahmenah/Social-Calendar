@@ -43,53 +43,60 @@
         text-align: center;
     }
 
-    /* Base class for time blocks to make them span edge-to-edge */
-    .day-time-block {
-        font-size: 0.7rem;
-        font-weight: 500;
-        padding: 2px 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-left: -4px; 
-        margin-right: -4px;
-    }
-
-    /* YouTube time block */
-    .saturday-block {
-        background-color: #ff0000; /* YouTube Red */
-        color: #ffffff; /* White text for contrast */
-        margin-top: 4px;
-    }
-    .saturday-block svg {
-        width: 12px;
-        height: 12px;
-        margin-right: 4px;
-    }
-
-    /* Shorts time block */
-    .shorts-block {
-        background-color: #ffffff; /* White */
-        color: #1f2937; /* Dark gray text */
-        border-top: 1px solid #f3f4f6; /* Light separator */
-        border-bottom: 1px solid #f3f4f6;
-    }
-
-    /* New styles for drop zones */
-    .drop-zone {
-        min-height: 10px; /* Gives a small area to drop into */
+    /* Day cell layout changes */
+    .day {
         display: flex;
         flex-direction: column;
-        gap: 4px; /* Space between dropped events in the same slot */
-        padding: 5px 0;
+    }
+    .day-header {
+        padding-bottom: 4px;
+    }
+    .day-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Drop Zone styles */
+    .drop-zone {
+        flex-grow: 1; /* Makes zones fill available space */
+        min-height: 40px; /* Made zones larger */
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 4px;
         transition: background-color 0.2s ease;
         border-radius: 4px;
-        margin: 0 -4px; /* Counteract parent padding */
     }
 
     .drop-zone.drag-over {
-        background-color: rgba(59, 130, 246, 0.2); /* More transparent blue highlight */
-        min-height: 30px; /* Make target bigger on hover */
+        /* Use !important to override the slot-specific backgrounds */
+        background-color: rgba(59, 130, 246, 0.3) !important; 
+    }
+
+    /* New classes for colored slots */
+    .youtube-slot {
+        background-color: rgba(255, 0, 0, 0.1); /* Transparent Red */
+    }
+    .shorts-slot {
+        background-color: rgba(107, 114, 128, 0.1); /* More transparent Gray/White */
+    }
+    
+    /* Label inside the colored slots */
+    .slot-label {
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: #6b7280;
+        text-align: center;
+        padding: 1px 0;
+        margin-bottom: 4px;
+        pointer-events: none; /* Make sure label doesn't block clicks on the zone */
+    }
+    .slot-label svg {
+        width: 12px;
+        height: 12px;
+        margin-right: 4px;
+        vertical-align: middle;
     }
   </style>
 </head>
@@ -157,6 +164,7 @@
     let allEvents = {};
     let monthOffset = 0;
     let activeDay = null;
+    let activeSlot = 'unsorted'; // To track which slot was clicked
     let loadedMonths = new Set();
     let unsubscribe; 
 
@@ -237,14 +245,14 @@
     }
 
     async function addEventToDay() {
-      if (!eventsCol) return;
+      if (!eventsCol || !activeDay) return;
       const type = contentType.value;
       const text = contentText.value.trim();
-      if (!text || !type || !activeDay) return;
+      if (!text || !type) return;
 
       const dateKey = activeDay.dataset.date;
-      // By default, add to the 'unsorted' slot
-      await addDoc(eventsCol, { date: dateKey, type, text, slot: 'unsorted' });
+      // Use the activeSlot captured from the click event
+      await addDoc(eventsCol, { date: dateKey, type, text, slot: activeSlot });
       modal.style.display = "none";
     }
 
@@ -294,15 +302,15 @@
         const thisDay = new Date(year, month, day);
         const dayOfWeek = thisDay.getDay(); 
 
-        // General drop handler for the whole day (for non-Saturday drops)
         dayEl.addEventListener("dragover", e => e.preventDefault());
         dayEl.addEventListener("drop", async e => {
             e.preventDefault();
             const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
             const target = e.target.closest('.day');
-            // Only handle drop if it's not on a Saturday or a specific drop-zone
             if (target && target.dataset.dayofweek !== '6' && !e.target.classList.contains('drop-zone')) {
-                await updateDoc(doc(eventsCol, dragged.id), { date: dateKey, slot: 'unsorted' });
+                if (dragged.id && eventsCol) {
+                    await updateDoc(doc(eventsCol, dragged.id), { date: dateKey, slot: 'unsorted' });
+                }
             }
         });
 
@@ -311,64 +319,59 @@
         if (today.toDateString() === thisDay.toDateString()) dayEl.classList.add("today");
         else if (thisDay < new Date(today.setHours(0, 0, 0, 0))) dayEl.classList.add("past");
 
-        // --- Start of layout logic ---
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'day-header';
+        
         const dateLabel = document.createElement("span");
         dateLabel.textContent = day;
+        dayHeader.appendChild(dateLabel);
 
-        const holidayLabel = holidays[`${month + 1}-${day}`] ? document.createElement("div") : null;
-        if (holidayLabel) {
+        if (holidays[`${month + 1}-${day}`]) {
+            const holidayLabel = document.createElement("div");
             holidayLabel.classList.add("holiday");
             holidayLabel.textContent = holidays[`${month + 1}-${day}`];
+            dayHeader.appendChild(holidayLabel);
         }
+        dayEl.appendChild(dayHeader);
+
+        const dayContent = document.createElement('div');
+        dayContent.className = 'day-content';
+        dayEl.appendChild(dayContent);
 
         if (dayOfWeek === 6) { // Saturday
             dayEl.dataset.dayofweek = '6';
             
             const topDropZone = document.createElement('div');
-            topDropZone.className = 'drop-zone';
+            topDropZone.className = 'drop-zone youtube-slot';
             topDropZone.dataset.slot = 'top';
-
-            const satBlock = document.createElement('div');
-            satBlock.className = 'day-time-block saturday-block';
-            satBlock.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg><span>9-11am</span>`;
-
+            const topLabel = document.createElement('div');
+            topLabel.className = 'slot-label';
+            topLabel.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#c4302b"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg><span>9-11am</span>`;
+            topDropZone.appendChild(topLabel);
+            
             const middleDropZone = document.createElement('div');
-            middleDropZone.className = 'drop-zone';
+            middleDropZone.className = 'drop-zone shorts-slot';
             middleDropZone.dataset.slot = 'middle';
-            
-            const shortsBlock = document.createElement('div');
-            shortsBlock.className = 'day-time-block shorts-block';
-            shortsBlock.textContent = 'Shorts';
-            
-            const bottomDropZone = document.createElement('div');
-            bottomDropZone.className = 'drop-zone';
-            bottomDropZone.dataset.slot = 'bottom';
+            const middleLabel = document.createElement('div');
+            middleLabel.className = 'slot-label';
+            middleLabel.textContent = 'Shorts';
+            middleDropZone.appendChild(middleLabel);
 
             const unsortedDropZone = document.createElement('div');
             unsortedDropZone.className = 'drop-zone';
             unsortedDropZone.dataset.slot = 'unsorted';
-            
-            // Append in the desired order
-            dayEl.appendChild(topDropZone);
-            dayEl.appendChild(dateLabel);
-            if (holidayLabel) dayEl.appendChild(holidayLabel);
-            dayEl.appendChild(satBlock);
-            dayEl.appendChild(middleDropZone);
-            dayEl.appendChild(shortsBlock);
-            dayEl.appendChild(bottomDropZone);
-            dayEl.appendChild(unsortedDropZone); // Catch-all for unsorted items
+
+            dayContent.appendChild(topDropZone);
+            dayContent.appendChild(middleDropZone);
+            dayContent.appendChild(unsortedDropZone);
 
         } else { // Not Saturday
             const unsortedDropZone = document.createElement('div');
             unsortedDropZone.className = 'drop-zone';
             unsortedDropZone.dataset.slot = 'unsorted';
-            
-            dayEl.appendChild(unsortedDropZone);
-            dayEl.appendChild(dateLabel);
-            if (holidayLabel) dayEl.appendChild(holidayLabel);
+            dayContent.appendChild(unsortedDropZone);
         }
 
-        // Add listeners to all drop zones on this day
         dayEl.querySelectorAll('.drop-zone').forEach(zone => {
             zone.addEventListener('dragover', e => {
                 e.preventDefault();
@@ -377,7 +380,7 @@
             zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
             zone.addEventListener('drop', async e => {
                 e.preventDefault();
-                e.stopPropagation(); // Prevent parent drop handlers
+                e.stopPropagation();
                 zone.classList.remove('drag-over');
                 const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
                 if (dragged.id && eventsCol) {
@@ -385,7 +388,6 @@
                 }
             });
         });
-        // --- End of layout logic ---
 
         if (allEvents[dateKey]) {
           allEvents[dateKey].forEach(event => {
@@ -395,13 +397,21 @@
             if (targetZone) {
                 targetZone.appendChild(eventEl);
             } else {
-                dayEl.appendChild(eventEl); // Fallback
+                dayContent.appendChild(eventEl); // Fallback
             }
           });
         }
 
         dayEl.addEventListener("click", (e) => {
             if (e.target.closest('.event') || e.target.closest('.delete-btn')) return;
+            
+            const clickedZone = e.target.closest('.drop-zone');
+            if (clickedZone) {
+                activeSlot = clickedZone.dataset.slot;
+            } else {
+                activeSlot = 'unsorted';
+            }
+            
             activeDay = dayEl;
             modal.style.display = "flex";
             contentText.value = "";
