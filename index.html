@@ -88,7 +88,7 @@
     }
 
     .drop-zone.drag-over {
-        background-color: #e0f2fe; /* Light blue highlight on drag over */
+        background-color: rgba(59, 130, 246, 0.2); /* More transparent blue highlight */
         min-height: 30px; /* Make target bigger on hover */
     }
   </style>
@@ -300,8 +300,8 @@
             e.preventDefault();
             const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
             const target = e.target.closest('.day');
-            // Only handle drop if it's not on a Saturday or a drop-zone
-            if (target.dataset.dayofweek !== '6' && !e.target.classList.contains('drop-zone')) {
+            // Only handle drop if it's not on a Saturday or a specific drop-zone
+            if (target && target.dataset.dayofweek !== '6' && !e.target.classList.contains('drop-zone')) {
                 await updateDoc(doc(eventsCol, dragged.id), { date: dateKey, slot: 'unsorted' });
             }
         });
@@ -311,70 +311,85 @@
         if (today.toDateString() === thisDay.toDateString()) dayEl.classList.add("today");
         else if (thisDay < new Date(today.setHours(0, 0, 0, 0))) dayEl.classList.add("past");
 
+        // --- Start of layout logic ---
         const dateLabel = document.createElement("span");
         dateLabel.textContent = day;
-        dayEl.appendChild(dateLabel);
 
-        if (holidays[`${month + 1}-${day}`]) {
-          const holidayLabel = document.createElement("div");
-          holidayLabel.classList.add("holiday");
-          holidayLabel.textContent = holidays[`${month + 1}-${day}`];
-          dayEl.appendChild(holidayLabel);
+        const holidayLabel = holidays[`${month + 1}-${day}`] ? document.createElement("div") : null;
+        if (holidayLabel) {
+            holidayLabel.classList.add("holiday");
+            holidayLabel.textContent = holidays[`${month + 1}-${day}`];
         }
 
-        const unsortedDropZone = document.createElement('div');
-        unsortedDropZone.className = 'drop-zone';
-        unsortedDropZone.dataset.slot = 'unsorted';
-        dayEl.appendChild(unsortedDropZone);
-
         if (dayOfWeek === 6) { // Saturday
-            dayEl.dataset.dayofweek = '6'; // Mark for specific drop logic
+            dayEl.dataset.dayofweek = '6';
+            
             const topDropZone = document.createElement('div');
             topDropZone.className = 'drop-zone';
             topDropZone.dataset.slot = 'top';
-            dayEl.appendChild(topDropZone);
 
             const satBlock = document.createElement('div');
             satBlock.className = 'day-time-block saturday-block';
             satBlock.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path></svg><span>9-11am</span>`;
-            dayEl.appendChild(satBlock);
 
             const middleDropZone = document.createElement('div');
             middleDropZone.className = 'drop-zone';
             middleDropZone.dataset.slot = 'middle';
-            dayEl.appendChild(middleDropZone);
             
             const shortsBlock = document.createElement('div');
             shortsBlock.className = 'day-time-block shorts-block';
             shortsBlock.textContent = 'Shorts';
-            dayEl.appendChild(shortsBlock);
             
             const bottomDropZone = document.createElement('div');
             bottomDropZone.className = 'drop-zone';
             bottomDropZone.dataset.slot = 'bottom';
-            dayEl.appendChild(bottomDropZone);
 
-            // Add listeners to all drop zones on this Saturday
-            dayEl.querySelectorAll('.drop-zone').forEach(zone => {
-                zone.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    zone.classList.add('drag-over');
-                });
-                zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-                zone.addEventListener('drop', async e => {
-                    e.preventDefault();
-                    e.stopPropagation(); // Prevent dayEl drop from firing
-                    zone.classList.remove('drag-over');
-                    const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
-                    await updateDoc(doc(eventsCol, dragged.id), { date: dateKey, slot: zone.dataset.slot });
-                });
-            });
+            const unsortedDropZone = document.createElement('div');
+            unsortedDropZone.className = 'drop-zone';
+            unsortedDropZone.dataset.slot = 'unsorted';
+            
+            // Append in the desired order
+            dayEl.appendChild(topDropZone);
+            dayEl.appendChild(dateLabel);
+            if (holidayLabel) dayEl.appendChild(holidayLabel);
+            dayEl.appendChild(satBlock);
+            dayEl.appendChild(middleDropZone);
+            dayEl.appendChild(shortsBlock);
+            dayEl.appendChild(bottomDropZone);
+            dayEl.appendChild(unsortedDropZone); // Catch-all for unsorted items
+
+        } else { // Not Saturday
+            const unsortedDropZone = document.createElement('div');
+            unsortedDropZone.className = 'drop-zone';
+            unsortedDropZone.dataset.slot = 'unsorted';
+            
+            dayEl.appendChild(unsortedDropZone);
+            dayEl.appendChild(dateLabel);
+            if (holidayLabel) dayEl.appendChild(holidayLabel);
         }
+
+        // Add listeners to all drop zones on this day
+        dayEl.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+            zone.addEventListener('drop', async e => {
+                e.preventDefault();
+                e.stopPropagation(); // Prevent parent drop handlers
+                zone.classList.remove('drag-over');
+                const dragged = JSON.parse(e.dataTransfer.getData("text/plain"));
+                if (dragged.id && eventsCol) {
+                    await updateDoc(doc(eventsCol, dragged.id), { date: dateKey, slot: zone.dataset.slot });
+                }
+            });
+        });
+        // --- End of layout logic ---
 
         if (allEvents[dateKey]) {
           allEvents[dateKey].forEach(event => {
             const eventEl = createEventElement(event);
-            // Find the correct slot to place the event, default to unsorted
             const slot = event.slot || 'unsorted';
             const targetZone = dayEl.querySelector(`.drop-zone[data-slot="${slot}"]`);
             if (targetZone) {
@@ -409,7 +424,7 @@
         deleteBtn.textContent = "✖";
         deleteBtn.onclick = async e => {
             e.stopPropagation();
-            await deleteDoc(doc(eventsCol, event.id));
+            if (eventsCol) await deleteDoc(doc(eventsCol, event.id));
         };
         eventEl.appendChild(deleteBtn);
 
