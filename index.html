@@ -48,13 +48,13 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import {
-      getFirestore, collection, getDocs, addDoc, deleteDoc,
-      doc
+      getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import {
       getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
+    // IMPORTANT: Your API key is exposed here. This is a security risk.
     const firebaseConfig = {
       apiKey: "AIzaSyBI7ak0UMM6oynVLitop9HPzps6WCpsGF0",
       authDomain: "simulakra-calendar.firebaseapp.com",
@@ -67,14 +67,14 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth();
-    let userId = null;
+
     let eventsCol;
     let allEvents = {};
     let monthOffset = 0;
     let activeDay = null;
     let loadedMonths = new Set();
-    
-    // Recommendation 3: Moved holidays object to be defined before use
+    let unsubscribe; // Variable to hold the listener cleanup function
+
     const holidays = {
       "1-1": "New Year's Day", "1-15": "Martin Luther King Jr. Day", "2-19": "Presidents' Day",
       "5-27": "Memorial Day", "6-19": "Juneteenth", "7-4": "Independence Day",
@@ -94,12 +94,10 @@
     const contentText = document.getElementById("contentText");
     const addEventBtn = document.getElementById("addEventBtn");
 
-    // Recommendation 2: Event listener for the new Login button
     document.getElementById('loginBtn').addEventListener('click', async () => {
       const email = loginForm.email.value;
       const password = loginForm.password.value;
       loginError.textContent = "";
-
       try {
         await signInWithEmailAndPassword(auth, email, password);
       } catch (error) {
@@ -107,12 +105,10 @@
       }
     });
 
-    // Recommendation 2: Event listener for the new Register button
     document.getElementById('registerBtn').addEventListener('click', async () => {
       const email = loginForm.email.value;
       const password = loginForm.password.value;
       loginError.textContent = "";
-
       try {
         await createUserWithEmailAndPassword(auth, email, password);
       } catch (error) {
@@ -120,7 +116,6 @@
       }
     });
     
-    // Recommendation 4: Attach the logout listener once, outside of onAuthStateChanged
     topRightLogout.addEventListener("click", async () => {
       await signOut(auth);
       location.reload();
@@ -128,33 +123,40 @@
 
     onAuthStateChanged(auth, user => {
       if (user) {
-        userId = user.uid;
-        eventsCol = collection(db, `users/${userId}/calendarEvents`);
+        // User is logged in
+        eventsCol = collection(db, `users/${user.uid}/calendarEvents`);
         loginModal.style.display = "none";
         currentUserInfo.innerHTML = `Logged in as: ${user.email}`;
         topRightLogout.style.display = "block";
-        loadEventsFromFirestore();
+
+        // Set up the real-time listener
+        unsubscribe = onSnapshot(eventsCol, (snapshot) => {
+          allEvents = {};
+          snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (!allEvents[data.date]) allEvents[data.date] = [];
+            allEvents[data.date].push({ ...data, id: docSnap.id });
+          });
+          // Re-render the calendar with the new data
+          renderCalendar();
+        });
+
       } else {
+        // User is logged out
+        if (unsubscribe) {
+          unsubscribe(); // Detach the listener
+        }
         loginModal.style.display = "flex";
         currentUserInfo.textContent = "";
         topRightLogout.style.display = "none";
       }
     });
-
-    async function loadEventsFromFirestore() {
-      if (!eventsCol) return;
-      const snapshot = await getDocs(eventsCol);
-      allEvents = {};
-
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (!allEvents[data.date]) allEvents[data.date] = [];
-        allEvents[data.date].push({ ...data, id: docSnap.id });
-      });
-
-      calendarContainer.innerHTML = "";
-      loadedMonths.clear();
-      renderMonth(monthOffset);
+    
+    function renderCalendar() {
+        calendarContainer.innerHTML = "";
+        loadedMonths.clear();
+        monthOffset = 0;
+        renderMonth(monthOffset);
     }
 
     async function addEventToDay() {
@@ -166,7 +168,7 @@
       const dateKey = activeDay.dataset.date;
       await addDoc(eventsCol, { date: dateKey, type, text });
       modal.style.display = "none";
-      await loadEventsFromFirestore();
+      // No need to call loadEventsFromFirestore() anymore
     }
 
     addEventBtn.addEventListener("click", addEventToDay);
@@ -222,7 +224,7 @@
               text: dragged.text,
               type: dragged.type
             });
-            loadEventsFromFirestore();
+            // No need to call loadEventsFromFirestore() anymore
           }
         });
 
@@ -250,7 +252,7 @@
             deleteBtn.onclick = async e => {
               e.stopPropagation();
               await deleteDoc(doc(eventsCol, event.id));
-              loadEventsFromFirestore();
+              // No need to call loadEventsFromFirestore() anymore
             };
 
             eventEl.appendChild(deleteBtn);
