@@ -166,3 +166,6 @@
     .modal-content button:hover {
       background: #00a58d;
     }
+     .today {
+      border: 2px solid #2196f3;
+    }
